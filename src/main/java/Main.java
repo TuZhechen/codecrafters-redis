@@ -21,11 +21,13 @@ public class Main {
           OutputStream outputStream = clientSocket.getOutputStream();
           BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
           String line;
+          StringBuilder commandBuffer = new StringBuilder();
           while((line = reader.readLine()) != null) {
-              if (line.equalsIgnoreCase("PING"))
+              commandBuffer.append(line);
+              if (commandBuffer.toString().contains("PING")) {
                 outputStream.write("+PONG\r\n".getBytes());
-              else
-                  throw new IOException("Unexpected request: " + line);
+                commandBuffer.setLength(0);
+              }
           }
         } catch (IOException e) {
           System.out.println("IOException: " + e.getMessage());
