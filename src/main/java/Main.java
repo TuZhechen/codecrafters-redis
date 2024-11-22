@@ -19,9 +19,11 @@ public class Main {
         // ensures that we don't run into 'Address already in use' errors
         serverSocket.setReuseAddress(true);
         // Wait for connection from client.
-        clientSocket = serverSocket.accept();
-        final Socket client = clientSocket;
-        threadPool.submit(() -> handleClient(client));
+        while(true){
+            clientSocket = serverSocket.accept();
+            final Socket client = clientSocket;
+            threadPool.submit(() -> handleClient(client));
+        }
     } catch (IOException e) {
         System.out.println("IOException: " + e.getMessage());
     } finally {
