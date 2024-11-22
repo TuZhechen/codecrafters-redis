@@ -1,22 +1,42 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Main {
   public static void main(String[] args){
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     System.out.println("Logs from your program will appear here!");
 
-        ServerSocket serverSocket = null;
-        Socket clientSocket = null;
-        int port = 6379;
+    ExecutorService threadPool = Executors.newCachedThreadPool();
+    ServerSocket serverSocket = null;
+    Socket clientSocket = null;
+    int port = 6379;
+    try {
+        serverSocket = new ServerSocket(port);
+        // Since the tester restarts your program quite often, setting SO_REUSEADDR
+        // ensures that we don't run into 'Address already in use' errors
+        serverSocket.setReuseAddress(true);
+        // Wait for connection from client.
+        clientSocket = serverSocket.accept();
+        final Socket client = clientSocket;
+        threadPool.submit(() -> handleClient(client));
+    } catch (IOException e) {
+        System.out.println("IOException: " + e.getMessage());
+    } finally {
         try {
-          serverSocket = new ServerSocket(port);
-          // Since the tester restarts your program quite often, setting SO_REUSEADDR
-          // ensures that we don't run into 'Address already in use' errors
-          serverSocket.setReuseAddress(true);
-          // Wait for connection from client.
-          clientSocket = serverSocket.accept();
+            if (serverSocket != null) {
+              serverSocket.close();
+            }
+        } catch (IOException e) {
+            System.out.println("IOException: " + e.getMessage());
+        }
+    }
+  }
+
+  private static void handleClient(Socket clientSocket) {
+      try {
           InputStream inputStream = clientSocket.getInputStream();
           OutputStream outputStream = clientSocket.getOutputStream();
           BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -29,16 +49,14 @@ public class Main {
                 commandBuffer.setLength(0);
               }
           }
-        } catch (IOException e) {
-          System.out.println("IOException: " + e.getMessage());
-        } finally {
+      } catch (IOException e) {
+          System.out.println("IOException when handling client: " + e.getMessage());
+      } finally {
           try {
-            if (clientSocket != null) {
               clientSocket.close();
-            }
           } catch (IOException e) {
-            System.out.println("IOException: " + e.getMessage());
+              System.out.println("IOException when closing client " + e.getMessage());
           }
-        }
+      }
   }
 }
