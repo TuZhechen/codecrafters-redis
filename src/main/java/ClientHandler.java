@@ -5,9 +5,11 @@ import java.util.HashMap;
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private static final HashMap<String, MortalValue> store = new HashMap<>();
+    private final HashMap<String, String> config;
 
-    public ClientHandler(Socket clientSocket) {
+    public ClientHandler(Socket clientSocket, HashMap<String, String> config) {
         this.clientSocket = clientSocket;
+        this.config = config;
     }
 
     @Override
@@ -47,6 +49,9 @@ public class ClientHandler implements Runnable {
                         case "GET":
                             handleGet(args, outputStream);
                             break;
+                        case "CONFIG":
+                            handleConfigGet(args, outputStream);
+                            break;
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
 
@@ -85,11 +90,11 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleGet(String[] args, OutputStream outputStream) throws IOException {
-        MortalValue mortalValue;
         if (args.length < 2) {
             outputStream.write("-ERR wrong number of arguments for 'GET'\r\n".getBytes());
             return;
         }
+        MortalValue mortalValue;
         String key = args[1];
         synchronized (store) {
             mortalValue = store.get(key);
@@ -101,6 +106,23 @@ public class ClientHandler implements Runnable {
             );
         } else {
             outputStream.write("$-1\r\n".getBytes());
+        }
+    }
+
+    private void handleConfigGet(String[] args, OutputStream outputStream) throws IOException {
+        if (args.length < 3) {
+            outputStream.write("-ERR wrong number of arguments for 'CONFIG'".getBytes());
+            return;
+        }
+        String option = args[1], name = args[2];
+        if("GET".equalsIgnoreCase(option)) {
+            System.out.println("Getting " + name + "...");
+            String value = config.get(name);
+            String response = String.format(
+                    "*2\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n",
+                    name.length(), name, value.length(), value
+            );
+            outputStream.write(response.getBytes());
         }
     }
 }
