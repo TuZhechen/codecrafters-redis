@@ -37,7 +37,6 @@ public class ClientHandler implements Runnable {
                         reader.readLine();
                         int lifespan = Integer.parseInt(reader.readLine());
                         mortalValue.setExpirationTime(System.currentTimeMillis() + lifespan);
-                    } else {
                         reader.reset();
                     }
                     synchronized (store) {
