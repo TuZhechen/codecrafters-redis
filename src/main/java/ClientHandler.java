@@ -4,7 +4,7 @@ import java.util.HashMap;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
-    private static final HashMap<String, String> store = new HashMap<>();
+    private static final HashMap<String, MortalValue> store = new HashMap<>();
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -31,18 +31,26 @@ public class ClientHandler implements Runnable {
                     String key = reader.readLine();
                     reader.readLine();
                     String value = reader.readLine();
+                    MortalValue mortalValue = new MortalValue(value);
+                    reader.readLine();
+                    if("PX".equalsIgnoreCase(reader.readLine())) {
+                        reader.readLine();
+                        int lifespan = Integer.parseInt(reader.readLine());
+                        mortalValue.setExpirationTime(System.currentTimeMillis() + lifespan);
+                    }
                     synchronized (store) {
-                        store.put(key, value);
+                        store.put(key, mortalValue);
                     }
                     outputStream.write("+OK\r\n".getBytes());
-                } else if ("GET".equalsIgnoreCase(request)) {
+                } else if("GET".equalsIgnoreCase(request)) {
                     reader.readLine();
                     String key = reader.readLine();
-                    String value;
+                    MortalValue mortalValue;
                     synchronized (store) {
-                        value = store.get(key);
+                        mortalValue = store.get(key);
                     }
-                    if (value != null) {
+                    if (mortalValue != null && !mortalValue.isExpired()) {
+                        String value = mortalValue.getValue();
                         outputStream.write(
                                 String.format("$%d\r\n%s\r\n", value.length(), value).getBytes()
                         );
