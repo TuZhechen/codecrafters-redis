@@ -32,7 +32,7 @@ public class ClientHandler implements Runnable {
                     reader.readLine();
                     String value = reader.readLine();
                     MortalValue mortalValue = new MortalValue(value);
-                    reader.mark(1024);
+                    reader.readLine();
                     if("PX".equalsIgnoreCase(reader.readLine())) {
                         reader.readLine();
                         int lifespan = Integer.parseInt(reader.readLine());
