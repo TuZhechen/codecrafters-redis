@@ -29,20 +29,20 @@ public class ClientHandler implements Runnable {
                 } else if("SET".equalsIgnoreCase(request)) {
                     reader.readLine();
                     String key = reader.readLine();
-                    System.out.println("key: " + key);
                     reader.readLine();
                     String value = reader.readLine();
-                    System.out.println("value: " + value);
                     MortalValue mortalValue = new MortalValue(value);
-                    reader.readLine();
+                    System.out.println("after value: " + reader.readLine());
                     if("PX".equalsIgnoreCase(reader.readLine())) {
-                        reader.readLine();
+                        System.out.println("after px: " + reader.readLine());
                         int lifespan = Integer.parseInt(reader.readLine());
                         mortalValue.setExpirationTime(System.currentTimeMillis() + lifespan);
                     }
+                    System.out.println("mortal value before store: " + mortalValue.getValue());
                     synchronized (store) {
                         store.put(key, mortalValue);
                     }
+                    System.out.println("mortal value after store: " + mortalValue.getValue());
                     outputStream.write("+OK\r\n".getBytes());
                 } else if("GET".equalsIgnoreCase(request)) {
                     reader.readLine();
