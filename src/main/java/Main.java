@@ -22,7 +22,9 @@ public class Main {
         while(true){
             clientSocket = serverSocket.accept();
             final Socket client = clientSocket;
-            threadPool.submit(() -> handleClient(client));
+            ClientHandler clientHandler = new ClientHandler(client);
+            Thread clientThread = new Thread(clientHandler);
+            clientThread.start();
         }
     } catch (IOException e) {
         System.out.println("IOException: " + e.getMessage());
@@ -37,28 +39,4 @@ public class Main {
     }
   }
 
-  private static void handleClient(Socket clientSocket) {
-      try {
-          InputStream inputStream = clientSocket.getInputStream();
-          OutputStream outputStream = clientSocket.getOutputStream();
-          BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-          String line;
-          StringBuilder commandBuffer = new StringBuilder();
-          while((line = reader.readLine()) != null) {
-              commandBuffer.append(line);
-              if (commandBuffer.toString().contains("PING")) {
-                outputStream.write("+PONG\r\n".getBytes());
-                commandBuffer.setLength(0);
-              }
-          }
-      } catch (IOException e) {
-          System.out.println("IOException when handling client: " + e.getMessage());
-      } finally {
-          try {
-              clientSocket.close();
-          } catch (IOException e) {
-              System.out.println("IOException when closing client " + e.getMessage());
-          }
-      }
-  }
 }
