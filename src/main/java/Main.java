@@ -2,11 +2,14 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Main {
-    public static final HashMap<String, String> config = new HashMap<>();
+    public static final Map<String, String> config = new ConcurrentHashMap<>();
+    public static final Map<String, MortalValue> store = new ConcurrentHashMap<>();
 
   public static void main(String[] args){
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -18,6 +21,9 @@ public class Main {
           } else if (args[i].equals("--dbfilename") && i+1 < args.length) {
               config.put("dbfilename", args[i+1]);
           }
+      }
+      if(!config.isEmpty()) {
+        RdbLoader.loadRdbFile(config.get("dir"), config.get("dbfilename"), store);
       }
     ExecutorService threadPool = Executors.newCachedThreadPool();
     ServerSocket serverSocket = null;
@@ -32,7 +38,7 @@ public class Main {
         while(true){
             clientSocket = serverSocket.accept();
             final Socket client = clientSocket;
-            ClientHandler clientHandler = new ClientHandler(client, config);
+            ClientHandler clientHandler = new ClientHandler(client, config, store);
             Thread clientThread = new Thread(clientHandler);
             clientThread.start();
         }

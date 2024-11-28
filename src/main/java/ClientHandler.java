@@ -1,15 +1,18 @@
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
-    private static final HashMap<String, MortalValue> store = new HashMap<>();
-    private final HashMap<String, String> config;
+    private final Map<String, MortalValue> store;
+    private final Map<String, String> config;
 
-    public ClientHandler(Socket clientSocket, HashMap<String, String> config) {
+    public ClientHandler(Socket clientSocket, Map<String, String> config, Map<String, MortalValue> store) {
         this.clientSocket = clientSocket;
         this.config = config;
+        this.store = store;
     }
 
     @Override
@@ -20,7 +23,6 @@ public class ClientHandler implements Runnable {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             String request;
             while ((request = reader.readLine()) != null) {
-                System.out.println("Raw request: " + request);
                 if (request.startsWith("*")) {
                     int argCount = Integer.parseInt(request.substring(1));
                     String[] args = new String[argCount];
@@ -51,6 +53,9 @@ public class ClientHandler implements Runnable {
                             break;
                         case "CONFIG":
                             handleConfigGet(args, outputStream);
+                            break;
+                        case "KEYS":
+                            handleKeys(args, outputStream);
                             break;
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
@@ -123,6 +128,35 @@ public class ClientHandler implements Runnable {
                     name.length(), name, value.length(), value
             );
             outputStream.write(response.getBytes());
+        }
+    }
+
+    private void handleKeys(String[] args, OutputStream outputStream) throws IOException {
+        if (args.length < 2) {
+            outputStream.write("-ERR KEYS requires at least one pattern argument\r\n".getBytes());
+            return;
+        }
+
+        String pattern = args[1];
+        System.out.println("Fetching keys like " + pattern + "...");
+        String regex = pattern.replace("*", ".*");
+
+        List<String> matchedKeys;
+        synchronized (store) {
+            matchedKeys = store.keySet().stream()
+                    .filter(key -> key.matches(regex))
+                    .toList();
+        }
+
+        if (matchedKeys.isEmpty()) {
+            outputStream.write("*0\r\n".getBytes());
+        } else {
+            StringBuilder response = new StringBuilder();
+            response.append("*").append(matchedKeys.size()).append("\r\n");
+            for (String key : matchedKeys) {
+                response.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
+            }
+            outputStream.write(response.toString().getBytes());
         }
     }
 }
