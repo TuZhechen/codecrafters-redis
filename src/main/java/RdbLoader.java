@@ -93,6 +93,10 @@ public class RdbLoader {
 
     private static void parseExpiryMilliseconds(DataInputStream in, Map<String, MortalValue> store) throws IOException {
         long ttl = readLittleEndianLong(in);
+        int valueType = in.readUnsignedByte();
+        if (valueType != 0x00) {
+            throw new IOException("Unsupported value type: " + valueType);
+        }
         String key = readString(in);
         String value = readString(in);
         MortalValue mortalValue = new MortalValue(value);
@@ -104,6 +108,10 @@ public class RdbLoader {
     private static void parseExpirySeconds(DataInputStream in, Map<String, MortalValue> store) throws IOException {
         int ttl = readLittleEndianInt(in);
         long ttlms = ttl * 1000L;
+        int valueType = in.readUnsignedByte();
+        if (valueType != 0x00) {
+            throw new IOException("Unsupported value type: " + valueType);
+        }
         String key = readString(in);
         String value = readString(in);
         MortalValue mortalValue = new MortalValue(value);
