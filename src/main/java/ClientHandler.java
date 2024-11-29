@@ -57,6 +57,9 @@ public class ClientHandler implements Runnable {
                         case "KEYS":
                             handleKeys(args, outputStream);
                             break;
+                        case "INFO":
+                            handleInfo(args, outputStream);
+                            break;
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
 
@@ -158,5 +161,14 @@ public class ClientHandler implements Runnable {
             }
             outputStream.write(response.toString().getBytes());
         }
+    }
+
+    private void handleInfo(String[] args, OutputStream outputStream) throws  IOException {
+        String option = args[1];
+        String info = "role:master";
+        String response = String.format(
+                "$%d\r\n%s\r\n", info.length(), info
+        );
+        outputStream.write(response.getBytes());
     }
 }
