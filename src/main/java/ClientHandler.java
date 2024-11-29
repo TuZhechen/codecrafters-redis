@@ -169,7 +169,11 @@ public class ClientHandler implements Runnable {
         if (config.containsKey("replicaof")) {
             info = "role:slave";
         } else {
-            info = "role:master";
+            String replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+            info = "role:master\n" +
+                    "master_replid:" + replid + "\n" +
+                    "master_repl_offset:0"
+                    ;
         }
         String response = String.format(
                 "$%d\r\n%s\r\n", info.length(), info
