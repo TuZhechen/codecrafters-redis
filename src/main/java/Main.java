@@ -2,11 +2,15 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Map;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class Main {
     public static final Map<String, String> config = new ConcurrentHashMap<>();
     public static final Map<String, MortalValue> store = new ConcurrentHashMap<>();
+    public static final BlockingQueue<String> commandBuffer = new LinkedBlockingDeque<>();
 
   public static void main(String[] args){
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -74,6 +78,7 @@ public class Main {
             try {
                 if (serverSocket != null) {
                   serverSocket.close();
+                  System.out.println("C-S connection closed");
                 }
             } catch (IOException e) {
                 System.out.println("Error closing server socket: " + e.getMessage());
@@ -102,6 +107,23 @@ public class Main {
       } catch (IOException e) {
           System.out.println("IOException in replica" + e.getMessage());
       }
+    }
+
+    public static void startCommandPropagator(Socket replicaSocket) {
+      new Thread( () -> {
+              try (OutputStream replicaOutput = replicaSocket.getOutputStream()) {
+                  while (true) {
+                      String cmd = commandBuffer.take();
+                      replicaOutput.write(cmd.getBytes());
+                      replicaOutput.flush();
+                  }
+              } catch (IOException e) {
+                  System.err.println("Error propagating commands to replica" + e.getMessage());
+              } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                  System.err.println("Command propagation interrupted");
+              }
+        }).start();
     }
 
     private static void sendPing(OutputStream outputStream) throws IOException {

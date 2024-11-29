@@ -66,11 +66,10 @@ public class ClientHandler implements Runnable {
                             outputStream.write("+OK\r\n".getBytes());
                             break;
                         case "PSYNC":
-                            handPsync(outputStream);
+                            handPsync(outputStream, clientSocket);
                             break;
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
-
                     }
                 }
             }
@@ -104,6 +103,9 @@ public class ClientHandler implements Runnable {
             store.put(key, mortalValue);
         }
         outputStream.write("+OK\r\n".getBytes());
+        String command = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n",
+                                       key.length(), key, value.length(), value);
+        Main.commandBuffer.offer(command);
     }
 
     private void handleGet(String[] args, OutputStream outputStream) throws IOException {
@@ -190,7 +192,7 @@ public class ClientHandler implements Runnable {
         outputStream.write(response.getBytes());
     }
 
-    private void handPsync(OutputStream outputStream) throws IOException {
+    private void handPsync(OutputStream outputStream, Socket replicaSocket) throws IOException {
         String replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
         String resp = "+FULLRESYNC " + replid + " 0\r\n";
         outputStream.write(resp.getBytes());
@@ -199,6 +201,8 @@ public class ClientHandler implements Runnable {
         outputStream.write(lengthPrefix.getBytes());
         outputStream.write(emptyRdb);
         outputStream.flush();
+        System.out.println("Start command propagation...");
+        Main.startCommandPropagator(replicaSocket);
     }
 
     private byte[] createEmptyRdbFile() {
