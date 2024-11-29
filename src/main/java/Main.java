@@ -93,6 +93,10 @@ public class Main {
           // handshake 2/3
           sendReplConf(outputStream, config.get("port"));
           readMasterResponse(inputStream);
+          readMasterResponse(inputStream);
+          // handshake 3/3
+          sendPsync(outputStream);
+          readMasterResponse(inputStream);
           // allow clients to connect
           startServer();
       } catch (IOException e) {
@@ -112,6 +116,12 @@ public class Main {
       outputStream.write(firstRequest.getBytes());
       String secondRequest = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n";
       outputStream.write(secondRequest.getBytes());
+    }
+
+    private static void sendPsync(OutputStream outputStream) throws IOException {
+      System.out.println("Sending PSYNC to master...");
+      String request = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n";
+      outputStream.write(request.getBytes());
     }
 
     private static void readMasterResponse(InputStream inputStream) throws IOException {

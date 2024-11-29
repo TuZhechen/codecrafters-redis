@@ -62,6 +62,10 @@ public class ClientHandler implements Runnable {
                             break;
                         case "REPLCONF":
                             outputStream.write("+OK\r\n".getBytes());
+                        case "PSYNC":
+                            String replid = args[1];
+                            String resp = "+FULLRESYNC " + replid + " 0\r\n";
+                            outputStream.write(resp.getBytes());
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
 
