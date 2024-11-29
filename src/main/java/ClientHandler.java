@@ -64,7 +64,7 @@ public class ClientHandler implements Runnable {
                             outputStream.write("+OK\r\n".getBytes());
                             break;
                         case "PSYNC":
-                            String replid = args[1];
+                            String replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
                             String resp = "+FULLRESYNC " + replid + " 0\r\n";
                             outputStream.write(resp.getBytes());
                             break;
