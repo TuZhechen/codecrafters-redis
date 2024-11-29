@@ -87,7 +87,11 @@ public class Main {
           // send a PING to the master
           OutputStream outputStream = masterSocket.getOutputStream();
           InputStream inputStream = masterSocket.getInputStream();
+          // handshake 1/3
           sendPing(outputStream);
+          readMasterResponse(inputStream);
+          // handshake 2/3
+          sendReplConf(outputStream, config.get("port"));
           readMasterResponse(inputStream);
           // allow clients to connect
           startServer();
@@ -100,6 +104,14 @@ public class Main {
       System.out.println("Sending PING to master...");
       String pingRequest = "*1\r\n$4\r\nPING\r\n";
       outputStream.write(pingRequest.getBytes());
+    }
+
+    private static void sendReplConf(OutputStream outputStream, String port) throws IOException {
+      System.out.println("Sending REPL config to master...");
+      String firstRequest = "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n" + port + "\r\n";
+      outputStream.write(firstRequest.getBytes());
+      String secondRequest = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n";
+      outputStream.write(secondRequest.getBytes());
     }
 
     private static void readMasterResponse(InputStream inputStream) throws IOException {

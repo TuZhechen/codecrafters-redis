@@ -60,6 +60,8 @@ public class ClientHandler implements Runnable {
                         case "INFO":
                             handleInfo(args, outputStream);
                             break;
+                        case "REPLCONF":
+                            outputStream.write("+OK\r\n".getBytes());
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
 
