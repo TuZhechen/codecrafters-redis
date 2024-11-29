@@ -166,7 +166,7 @@ public class ClientHandler implements Runnable {
     private void handleInfo(String[] args, OutputStream outputStream) throws  IOException {
         String option = args[1];
         String info;
-        if (config.containsKey("replicaof")) {
+        if ("slave".equalsIgnoreCase(config.get("role"))) {
             info = "role:slave";
         } else {
             String replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
