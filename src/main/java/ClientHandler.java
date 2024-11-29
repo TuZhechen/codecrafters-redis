@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +66,7 @@ public class ClientHandler implements Runnable {
                             outputStream.write("+OK\r\n".getBytes());
                             break;
                         case "PSYNC":
-                            String replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
-                            String resp = "+FULLRESYNC " + replid + " 0\r\n";
-                            outputStream.write(resp.getBytes());
+                            handPsync(outputStream);
                             break;
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
@@ -84,6 +84,7 @@ public class ClientHandler implements Runnable {
             }
         }
     }
+
 
     private void handleSet(String[] args, OutputStream outputStream) throws IOException {
         if (args.length < 3) {
@@ -187,5 +188,36 @@ public class ClientHandler implements Runnable {
                 "$%d\r\n%s\r\n", info.length(), info
         );
         outputStream.write(response.getBytes());
+    }
+
+    private void handPsync(OutputStream outputStream) throws IOException {
+        String replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+        String resp = "+FULLRESYNC " + replid + " 0\r\n";
+        outputStream.write(resp.getBytes());
+        byte[] emptyRdb = createEmptyRdbFile();
+        String lengthPrefix = "$" + emptyRdb.length + "\r\n";
+        outputStream.write(lengthPrefix.getBytes());
+        outputStream.write(emptyRdb);
+        outputStream.flush();
+    }
+
+    private byte[] createEmptyRdbFile() {
+        try (ByteArrayOutputStream rdbStream = new ByteArrayOutputStream()) {
+            // RDB header: Magic string + version
+            rdbStream.write("REDIS0011".getBytes());
+            // RDB footer: End of file +  CRC64 checksum
+            rdbStream.write(0xFF);
+            rdbStream.write(longToBytes(0L));
+            return rdbStream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to create RDB file", e);
+        }
+    }
+
+    private byte[] longToBytes(long value) {
+        ByteBuffer buffer = ByteBuffer.allocate(8);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putLong(value);
+        return buffer.array();
     }
 }
