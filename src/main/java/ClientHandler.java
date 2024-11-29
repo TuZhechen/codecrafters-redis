@@ -165,7 +165,12 @@ public class ClientHandler implements Runnable {
 
     private void handleInfo(String[] args, OutputStream outputStream) throws  IOException {
         String option = args[1];
-        String info = "role:master";
+        String info;
+        if (config.containsKey("replicaof")) {
+            info = "role:slave";
+        } else {
+            info = "role:master";
+        }
         String response = String.format(
                 "$%d\r\n%s\r\n", info.length(), info
         );

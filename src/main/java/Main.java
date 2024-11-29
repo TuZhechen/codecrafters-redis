@@ -15,13 +15,23 @@ public class Main {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     System.out.println("Logs from your program will appear here!");
     // Parse command-line arguments
-      for (int i = 0; i < args.length; ++i) {
-          if (args[i].equals("--dir") && i+1 < args.length) {
-              config.put("dir", args[i+1]);
-          } else if (args[i].equals("--dbfilename") && i+1 < args.length) {
-              config.put("dbfilename", args[i+1]);
-          } else if (args[i].equals("--port") && i+1 < args.length) {
-              config.put("port", args[i+1]);
+      for (int i = 0; i < args.length - 1; ++i) {
+          String arg = args[i], value = args[i+1];
+          switch (arg) {
+              case "--dir":
+                  config.put("dir", value);
+                  break;
+              case "--dbfilename":
+                  config.put("dbfilename", value);
+                  break;
+              case "--port":
+                  config.put("port", value);
+                  break;
+              case "--replicaof":
+                  config.put("replicaof", value);
+                  break;
+              default:
+                  break;
           }
       }
       if(config.containsKey("dir") && config.containsKey("dbfilename")) {
