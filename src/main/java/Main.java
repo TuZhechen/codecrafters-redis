@@ -20,15 +20,17 @@ public class Main {
               config.put("dir", args[i+1]);
           } else if (args[i].equals("--dbfilename") && i+1 < args.length) {
               config.put("dbfilename", args[i+1]);
+          } else if (args[i].equals("--port") && i+1 < args.length) {
+              config.put("port", args[i+1]);
           }
       }
-      if(!config.isEmpty()) {
+      if(config.containsKey("dir") && config.containsKey("dbfilename")) {
         RdbLoader.loadRdbFile(config.get("dir"), config.get("dbfilename"), store);
       }
     ExecutorService threadPool = Executors.newCachedThreadPool();
     ServerSocket serverSocket = null;
     Socket clientSocket = null;
-    int port = 6379;
+    int port = config.containsKey("port") ? Integer.parseInt(config.get("port")): 6379;
     try {
         serverSocket = new ServerSocket(port);
         // Since the tester restarts your program quite often, setting SO_REUSEADDR
