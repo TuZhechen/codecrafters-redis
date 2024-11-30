@@ -26,15 +26,9 @@ public class ClientHandler implements Runnable {
             InputStream inputStream = clientSocket.getInputStream();
             OutputStream outputStream = clientSocket.getOutputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            String request;
-            while ((request = reader.readLine()) != null) {
-                if (request.startsWith("*")) {
-                    int argCount = Integer.parseInt(request.substring(1));
-                    String[] args = new String[argCount];
-                    for (int i = 0; i < argCount; i++) {
-                        reader.readLine();
-                        args[i] = reader.readLine();
-                    }
+            while (!clientSocket.isClosed()) {
+                try {
+                    String[] args = parseRespCommand(reader);
                     String command = args[0].toUpperCase();
                     switch (command) {
                         case "PING":
@@ -74,17 +68,43 @@ public class ClientHandler implements Runnable {
                             default:
                                 outputStream.write("-ERR unknown command\r\n".getBytes());
                     }
+                } catch (IOException e) {
+                    outputStream.write(("-ERR" + e.getMessage() + "\r\n").getBytes());
                 }
             }
         } catch (IOException e) {
             System.out.println("IOException when handling client: " + e.getMessage());
         } finally {
             try {
-                clientSocket.close();
+                if (!clientSocket.isClosed()) {
+                    clientSocket.close();
+                }
             } catch (IOException e) {
                 System.out.println("IOException when closing client " + e.getMessage());
             }
         }
+    }
+
+    public static String[] parseRespCommand(BufferedReader reader) throws IOException {
+        String req = reader.readLine();
+        if (req == null || !req.startsWith("*")) {
+            throw new IOException("Invalid RESP command: wrong head");
+        }
+        int argCount = Integer.parseInt(req.substring(1));
+        String[] args = new String[argCount];
+        for (int i = 0; i < argCount; i++) {
+            String bulkLength = reader.readLine();
+            if (bulkLength == null || !bulkLength.startsWith("$")) {
+                throw new IOException("Invalid RESP command: wrong length");
+            }
+
+            String arg = reader.readLine();
+            if (arg == null) {
+                throw new IOException("Invalid RESP command: missing arg");
+            }
+            args[i] = arg;
+        }
+        return args;
     }
 
 

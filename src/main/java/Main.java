@@ -99,6 +99,8 @@ public class Main {
           // handshake 3/3
           sendPsync(outputStream);
           readMasterResponse(inputStream);
+          // start listening for propagated commands
+          new Thread(() -> listenForCommands(inputStream)).start();
           // allow clients to connect
           startServer();
       } catch (IOException e) {
@@ -156,4 +158,25 @@ public class Main {
       System.out.println("Received response from master: " + response);
     }
 
+    private static void listenForCommands(InputStream inputStream) {
+      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+      try {
+          while (true) {
+              String[] args = ClientHandler.parseRespCommand(reader);
+              String command = args[0].toUpperCase();
+              if("SET".equals(command)) {
+                  if (args.length < 3) {
+                      System.err.println("Invalid SET for master, too few arguments");
+                      continue;
+                  }
+                  String key = args[1], value = args[2];
+                  synchronized (store) {
+                      store.put(key, new MortalValue(value));
+                  }
+              }
+          }
+      } catch (IOException e) {
+          System.err.println("Error processing commands for master: " + e.getMessage());
+      }
+    }
 }
