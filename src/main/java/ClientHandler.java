@@ -5,6 +5,9 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
@@ -105,7 +108,9 @@ public class ClientHandler implements Runnable {
         outputStream.write("+OK\r\n".getBytes());
         String command = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n",
                                        key.length(), key, value.length(), value);
-        Main.commandBuffer.offer(command);
+        for (BlockingQueue<String> buffer : Main.replicaBuffers.values()) {
+            buffer.offer(command);
+        }
     }
 
     private void handleGet(String[] args, OutputStream outputStream) throws IOException {
@@ -202,7 +207,9 @@ public class ClientHandler implements Runnable {
         outputStream.write(emptyRdb);
         outputStream.flush();
         System.out.println("Start command propagation...");
-        Main.startCommandPropagator(replicaSocket);
+        BlockingQueue<String> buffer = new LinkedBlockingQueue<>();
+        Main.replicaBuffers.put(replicaSocket, buffer);
+        Main.startCommandPropagator(replicaSocket, buffer);
     }
 
     private byte[] createEmptyRdbFile() {

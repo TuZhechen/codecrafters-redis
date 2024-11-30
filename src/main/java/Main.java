@@ -2,15 +2,12 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Map;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.*;
 
 public class Main {
     public static final Map<String, String> config = new ConcurrentHashMap<>();
     public static final Map<String, MortalValue> store = new ConcurrentHashMap<>();
-    public static final BlockingQueue<String> commandBuffer = new LinkedBlockingDeque<>();
+    public static final Map<Socket, BlockingQueue<String>> replicaBuffers = new ConcurrentHashMap<>();
 
   public static void main(String[] args){
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -109,19 +106,26 @@ public class Main {
       }
     }
 
-    public static void startCommandPropagator(Socket replicaSocket) {
+    public static void startCommandPropagator(Socket replicaSocket, BlockingQueue<String> buffer) {
       new Thread( () -> {
               try (OutputStream replicaOutput = replicaSocket.getOutputStream()) {
-                  while (true) {
-                      String cmd = commandBuffer.take();
-                      replicaOutput.write(cmd.getBytes());
-                      replicaOutput.flush();
+                  while (!replicaSocket.isClosed()) {
+                      try {
+                          String cmd = buffer.take();
+                          replicaOutput.write(cmd.getBytes());
+                          replicaOutput.flush();
+                      } catch (IOException e) {
+                          System.err.println("Error propagating to replica: " + e.getMessage());
+                          break;
+                      }
                   }
-              } catch (IOException e) {
-                  System.err.println("Error propagating commands to replica" + e.getMessage());
-              } catch (InterruptedException e) {
+              } catch (IOException | InterruptedException e) {
                   Thread.currentThread().interrupt();
                   System.err.println("Command propagation interrupted");
+              } finally {
+                  replicaBuffers.remove(replicaSocket);
+                  System.out.println("Replica disconnected: " +
+                          replicaSocket.getInetAddress());
               }
         }).start();
     }
