@@ -99,12 +99,12 @@ public class Main {
           // handshake 3/3
           sendPsync(outputStream);
           readMasterResponse(inputStream);
-          // start listening for propagated commands
-          new Thread(() -> listenForCommands(inputStream)).start();
-          // allow clients to connect
+          // skip rdb file transfer
+          skipRdbFile(inputStream);
+          new Thread(() -> listenForCommands(inputStream, outputStream)).start();
           startServer();
       } catch (IOException e) {
-          System.out.println("IOException in replica" + e.getMessage());
+          System.err.println("IOException in replica" + e.getMessage());
       }
     }
 
@@ -153,30 +153,95 @@ public class Main {
     }
 
     private static void readMasterResponse(InputStream inputStream) throws IOException {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-      String response = reader.readLine();
-      System.out.println("Received response from master: " + response);
+//      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+//      String response = reader.readLine();
+//      System.out.println("Received response from master: " + response);
+        byte[] buffer = new byte[56];
+        int bytesRead = inputStream.read(buffer);
+
+        if (bytesRead > 0) {
+            String response = new String(buffer, 0 , bytesRead);
+            System.out.println("Received response from master: " + response);
+            System.out.println("Bytes read: " + bytesRead);
+        } else {
+            System.out.println("No bytes read from input stream");
+        }
     }
 
-    private static void listenForCommands(InputStream inputStream) {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-      try {
-          while (true) {
-              String[] args = ClientHandler.parseRespCommand(reader);
-              String command = args[0].toUpperCase();
-              if("SET".equals(command)) {
-                  if (args.length < 3) {
-                      System.err.println("Invalid SET for master, too few arguments");
-                      continue;
-                  }
-                  String key = args[1], value = args[2];
-                  synchronized (store) {
-                      store.put(key, new MortalValue(value));
-                  }
-              }
-          }
-      } catch (IOException e) {
-          System.err.println("Error processing commands for master: " + e.getMessage());
-      }
+    private static void skipRdbFile(InputStream inputStream) throws IOException {
+        // Read length prefix
+        byte[] lengthBuffer = new byte[5];
+        inputStream.read(lengthBuffer);
+        String lengthPrefix = new String(lengthBuffer);
+
+        if (!lengthPrefix.startsWith("$")) {
+            System.out.println("Unexpected RDB length prefix: " + lengthPrefix);
+            return;
+        }
+
+        // Parse RDB file length
+        int rdbLength = Integer.parseInt(lengthPrefix.substring(1, lengthPrefix.indexOf('\r')));
+
+        // Skip RDB content
+        byte[] rdbBuffer = new byte[rdbLength];
+        long skipped = inputStream.read(rdbBuffer);
+
+        System.out.println("Skipped RDB file:");
+        System.out.println("Length prefix: " + lengthPrefix);
+        System.out.println("RDB file length: " + rdbLength);
+        System.out.println("Bytes skipped: " + skipped);
     }
+
+    private static void listenForCommands(InputStream inputStream, OutputStream outputStream) {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        try {
+            while (true) {
+                String[] args = ClientHandler.parseRespCommand(reader);
+                if (args == null || args.length == 0) {
+                    System.err.println("No commands received from master.");
+                    break;
+                }
+
+                String command = args[0].toUpperCase();
+                if ("REPLCONF".equals(command)) {
+                    handleReplConfCommand(args, outputStream);
+                } else {
+                    handlePropagatedCommand(args);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading commands: " + e.getMessage());
+        }
+    }
+
+    private static void handlePropagatedCommand(String[] args) {
+        String command = args[0].toUpperCase();
+        switch (command) {
+            case "SET":
+                if (args.length < 3) {
+                    System.err.println("Invalid SET from master, too few arguments");
+                    return;
+                }
+                String key = args[1], value = args[2];
+                synchronized (store) {
+                    store.put(key, new MortalValue(value));
+                }
+                break;
+                default:
+                    break;
+              }
+
+    }
+
+    private static void handleReplConfCommand(String[] args, OutputStream outputStream) throws IOException {
+        if ("GETACK".equalsIgnoreCase(args[1])) {
+            String resp = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+            outputStream.write(resp.getBytes());
+            outputStream.flush();
+            System.out.println("Sent REPLCONF ACK 0 to master.");
+        } else {
+            System.out.println("Unhandled REPLCONF command: " + args[1]);
+        }
+    }
+
 }

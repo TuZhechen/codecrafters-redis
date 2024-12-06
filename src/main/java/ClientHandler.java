@@ -29,6 +29,9 @@ public class ClientHandler implements Runnable {
             while (!clientSocket.isClosed()) {
                 try {
                     String[] args = parseRespCommand(reader);
+                    if (args == null || args.length == 0) {
+                        break;
+                    }
                     String command = args[0].toUpperCase();
                     switch (command) {
                         case "PING":
@@ -87,7 +90,11 @@ public class ClientHandler implements Runnable {
 
     public static String[] parseRespCommand(BufferedReader reader) throws IOException {
         String req = reader.readLine();
-        if (req == null || !req.startsWith("*")) {
+        System.out.println("Raw first input: " + req);
+        if (req == null) {
+            throw new IOException("Invalid RESP command: empty or null input");
+        }
+        if (!req.startsWith("*")) {
             throw new IOException("Invalid RESP command: wrong head");
         }
         int argCount = Integer.parseInt(req.substring(1));
