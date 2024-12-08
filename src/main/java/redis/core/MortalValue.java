@@ -1,3 +1,5 @@
+package redis.core;
+
 public class MortalValue {
     private final String value;
     private long expirationTime = Long.MAX_VALUE;
@@ -21,4 +23,5 @@ public class MortalValue {
     public boolean isExpired() {
         return System.currentTimeMillis() > expirationTime;
     }
+
 }

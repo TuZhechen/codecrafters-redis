@@ -1,3 +1,5 @@
+package redis.core;
+
 public class SpecialEncoding {
     private final int type;
 

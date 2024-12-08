@@ -1,3 +1,5 @@
+package redis.core;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -68,9 +70,9 @@ public class RdbLoader {
     }
 
     private static void skipMetadata(DataInputStream in) throws IOException {
-            String name = readString(in);
-            String value = readString(in);
-            System.out.println("Metadata skipped: " + name + " -> " + value);
+        String name = readString(in);
+        String value = readString(in);
+        System.out.println("Metadata skipped: " + name + " -> " + value);
     }
 
     private static void skipHashTableSize(DataInputStream in) throws IOException {
@@ -133,7 +135,7 @@ public class RdbLoader {
             System.out.println("6-bit length: " + lengthType);
             return lengthType;
 
-        // Case 2: read 14-bit size
+            // Case 2: read 14-bit size
         } else if (indicator == 0x40) {
             // 01xxxxxx
             int secondByte = in.readUnsignedByte();
@@ -141,7 +143,7 @@ public class RdbLoader {
             System.out.println("14-bit length: " + len);
             return len;
 
-        // Case 3: skip the remaining bits read the next 32-bit size
+            // Case 3: skip the remaining bits read the next 32-bit size
         } else if (indicator == 0x80) {
             // 10xxxxxx
             int len = in.readInt();
@@ -209,3 +211,4 @@ public class RdbLoader {
         return wrapped.getLong();
     }
 }
+
