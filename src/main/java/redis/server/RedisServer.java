@@ -45,7 +45,6 @@ public class RedisServer {
 
             while (true) {
                 final Socket client = serverSocket.accept();
-                System.out.println("New client connected: " + client.getRemoteSocketAddress());
                 new Thread(new ClientHandler(client, storageManager, serverConfig)).start();
             }
         } catch (IOException e) {

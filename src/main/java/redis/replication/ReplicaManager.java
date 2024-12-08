@@ -14,9 +14,11 @@ public class ReplicaManager {
 
     // Map to hold replica buffers, one for each replica identified by its socket
     public static final Map<Socket, BlockingQueue<String>> replicaBuffers = new ConcurrentHashMap<>();
+    public static int numOfReplicas = 0;
 
     public static void addReplica(Socket replicaSocket, BlockingQueue<String> replicaBuffer) {
         replicaBuffers.put(replicaSocket, replicaBuffer);
+        numOfReplicas++;
     }
     // Method to propagate a command to all replicas
     public static void propagateCommand(String command) {

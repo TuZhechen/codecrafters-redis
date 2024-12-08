@@ -7,7 +7,7 @@ public class RESPEncoder {
         return new SimpleStringImpl().encode(value);
     }
 
-    public static String encodeInteger(String value) {
+    public static String encodeInteger(int value) {
         return new IntegerImpl().encode(value);
     }
 

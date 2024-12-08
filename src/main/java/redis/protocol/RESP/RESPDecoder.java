@@ -21,7 +21,6 @@ public class RESPDecoder {
 
     public static String[] decodeCommand(BufferedReader reader) throws IOException {
         String head = reader.readLine();
-        System.out.println("RESP head: " + head);
         if (head == null) {
             throw new IOException("Invalid RESP command: empty or null input");
         }
