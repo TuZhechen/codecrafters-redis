@@ -7,6 +7,10 @@ public class RESPEncoder {
         return new SimpleStringImpl().encode(value);
     }
 
+    public static String encodeInteger(String value) {
+        return new IntegerImpl().encode(value);
+    }
+
     public static String encodeBulkString(String value) {
         return new BulkStringImpl().encode(value);
     }

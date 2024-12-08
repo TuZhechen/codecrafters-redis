@@ -33,6 +33,8 @@ public class RedisCommandFactory {
                 return new ReplConfImpl();
             case "PSYNC":
                 return new PsyncImpl();
+            case "WAIT":
+                return new WaitImpl();
             default:
                 return null;
         }
