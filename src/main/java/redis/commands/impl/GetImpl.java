@@ -15,7 +15,6 @@ public class GetImpl implements RedisCommandHandler {
 
     @Override
     public void invoke(String[] args, ClientHandler clientHandler) {
-        System.out.println("GET method invoked");
         String response;
         if (args.length < 2) {
             response = "-ERR wrong number of arguments for 'GET'\r\n";
@@ -23,11 +22,9 @@ public class GetImpl implements RedisCommandHandler {
             return;
         }
         String key = args[1];
-        System.out.println("key: " + key);
         MortalValue mortalValue = storageManager.get(key);
 
         if (mortalValue != null && !mortalValue.isExpired()) {
-            System.out.println("We get " + mortalValue.getValue());
             response = RESPEncoder.encodeBulkString(mortalValue.getValue());
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();

@@ -42,10 +42,16 @@ public class SetImpl implements RedisCommandHandler {
         response = RESPEncoder.encodeSimpleString("OK");
         clientHandler.getWriter().print(response);
         clientHandler.getWriter().flush();
+
         String command = RESPEncoder.encodeArray(
           new String[] {"SET", key, value}
         );
         ReplicaManager.propagateCommand(command);
+
+//        String ack = RESPEncoder.encodeArray(new String[] {"REPLCONF", "GETACK", "*"});
+//        ReplicaManager.propagateCommand(ack);
+
     }
+
 }
 

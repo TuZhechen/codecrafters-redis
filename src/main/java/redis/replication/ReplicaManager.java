@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,12 +15,11 @@ public class ReplicaManager {
 
     // Map to hold replica buffers, one for each replica identified by its socket
     public static final Map<Socket, BlockingQueue<String>> replicaBuffers = new ConcurrentHashMap<>();
-    public static int numOfReplicas = 0;
 
     public static void addReplica(Socket replicaSocket, BlockingQueue<String> replicaBuffer) {
         replicaBuffers.put(replicaSocket, replicaBuffer);
-        numOfReplicas++;
     }
+
     // Method to propagate a command to all replicas
     public static void propagateCommand(String command) {
         // Send the command to all connected replicas
@@ -27,6 +27,7 @@ public class ReplicaManager {
             buffer.offer(command);
         }
     }
+
 
     public static void startCommandPropagator(Socket replicaSocket, BlockingQueue<String> replicaBuffer) {
         new Thread(() -> {
@@ -59,5 +60,8 @@ public class ReplicaManager {
         }
     }
 
+    public static int getReplicaCount() {
+        return replicaBuffers.size();
+    }
 
 }
