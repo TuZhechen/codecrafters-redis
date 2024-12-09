@@ -11,7 +11,7 @@ import java.util.Map;
 public class RdbLoader {
     private static final String RDB_HEADER = "REDIS";
 
-    public static void loadRdbFile(String dir, String dbfilename, Map<String, MortalValue> store) {
+    public static void loadRdbFile(String dir, String dbfilename, StorageManager storageManager) {
         Path rdbFile = Paths.get(dir, dbfilename);
 
         if (!Files.exists(rdbFile)) {
@@ -41,13 +41,13 @@ public class RdbLoader {
                         skipHashTableSize(inputStream);
                         break;
                     case 0x00: // String key-value pair
-                        parseStringKeyValuePair(inputStream, store);
+                        parseStringKeyValuePair(inputStream, storageManager);
                         break;
                     case 0xFC: // Expiry timestamp in milliseconds
-                        parseExpiryMilliseconds(inputStream, store);
+                        parseExpiryMilliseconds(inputStream, storageManager);
                         break;
                     case 0xFD: // Expiry timestamp in seconds
-                        parseExpirySeconds(inputStream, store);
+                        parseExpirySeconds(inputStream, storageManager);
                         break;
                     default:
                         throw new IOException("Unsupported entry type: " + type);
@@ -86,14 +86,14 @@ public class RdbLoader {
         System.out.println("Database subsection:" + (int) readLength(in));
     }
 
-    private static void parseStringKeyValuePair(DataInputStream in, Map<String, MortalValue> store) throws IOException {
+    private static void parseStringKeyValuePair(DataInputStream in, StorageManager storageManager) throws IOException {
         String key = readString(in);
         String value = readString(in);
-        store.put(key, new MortalValue(value));
+        storageManager.put(key, new MortalValue<> (value));
         System.out.println("Key: " + key + " Value: " + value);
     }
 
-    private static void parseExpiryMilliseconds(DataInputStream in, Map<String, MortalValue> store) throws IOException {
+    private static void parseExpiryMilliseconds(DataInputStream in, StorageManager storageManager) throws IOException {
         long ttl = readLittleEndianLong(in);
         int valueType = in.readUnsignedByte();
         if (valueType != 0x00) {
@@ -101,13 +101,13 @@ public class RdbLoader {
         }
         String key = readString(in);
         String value = readString(in);
-        MortalValue mortalValue = new MortalValue(value);
+        MortalValue<String> mortalValue = new MortalValue<> (value);
         mortalValue.setExpirationTime(ttl);
-        store.put(key, mortalValue);
+        storageManager.put(key, mortalValue);
         System.out.println("Key: " + key + " Value: " + value + "Expired at: " + ttl);
     }
 
-    private static void parseExpirySeconds(DataInputStream in, Map<String, MortalValue> store) throws IOException {
+    private static void parseExpirySeconds(DataInputStream in, StorageManager storageManager) throws IOException {
         int ttl = readLittleEndianInt(in);
         long ttlms = ttl * 1000L;
         int valueType = in.readUnsignedByte();
@@ -118,7 +118,7 @@ public class RdbLoader {
         String value = readString(in);
         MortalValue mortalValue = new MortalValue(value);
         mortalValue.setExpirationTime(ttlms);
-        store.put(key, mortalValue);
+        storageManager.put(key, mortalValue);
         System.out.println("Key: " + key + " Value: " + value + "Expired at: " + ttlms);
     }
 

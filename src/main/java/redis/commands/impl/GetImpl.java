@@ -22,7 +22,7 @@ public class GetImpl implements RedisCommandHandler {
             return;
         }
         String key = args[1];
-        MortalValue mortalValue = storageManager.get(key);
+        MortalValue<String> mortalValue = storageManager.get(key, String.class);
 
         if (mortalValue != null && !mortalValue.isExpired()) {
             response = RESPEncoder.encodeBulkString(mortalValue.getValue());

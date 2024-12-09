@@ -24,7 +24,7 @@ public class SetImpl implements RedisCommandHandler {
             return;
         }
         String key = args[1], value = args[2];
-        MortalValue mortalValue = new MortalValue(value);
+        MortalValue mortalValue = new MortalValue<> (value);
 
         if(args.length == 5 && "PX".equalsIgnoreCase(args[3])) {
             try {
@@ -47,9 +47,6 @@ public class SetImpl implements RedisCommandHandler {
           new String[] {"SET", key, value}
         );
         ReplicaManager.propagateCommand(command);
-
-//        String ack = RESPEncoder.encodeArray(new String[] {"REPLCONF", "GETACK", "*"});
-//        ReplicaManager.propagateCommand(ack);
 
     }
 

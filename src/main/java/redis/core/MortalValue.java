@@ -1,16 +1,34 @@
 package redis.core;
 
-public class MortalValue {
-    private final String value;
-    private long expirationTime = Long.MAX_VALUE;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-    public MortalValue(String value) {
+public class MortalValue<T> {
+    private final T value;
+    private final String type;
+    private long expirationTime = -1;
+
+    private String checkType(T value) {
+        if (value == null) return "none";
+        if (value instanceof String) return "string";
+        if (value instanceof List) return "list";
+        if (value instanceof Map) return "hash";
+        if (value instanceof Set) return "set";
+        if (value instanceof RedisStream) return "stream";
+        // Add more type mappings as needed
+        return "unknown";
+    }
+    public MortalValue(T value) {
         this.value = value;
+        this.type = checkType(value);
     }
 
-    public String getValue() {
+    public T getValue() {
         return value;
     }
+
+    public String getType() { return  type; }
 
     public long getExpirationTime() {
         return expirationTime;
@@ -21,7 +39,7 @@ public class MortalValue {
     }
 
     public boolean isExpired() {
-        return System.currentTimeMillis() > expirationTime;
+        return expirationTime > 0 && System.currentTimeMillis() > expirationTime;
     }
 
 }

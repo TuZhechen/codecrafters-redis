@@ -26,7 +26,7 @@ public class RedisServer {
         if (serverConfig.containsKey("dir") && serverConfig.containsKey("dbfilename")) {
             RdbLoader.loadRdbFile(serverConfig.getDir(),
                                   serverConfig.getDbFileName(),
-                                  storageManager.getStore()
+                                  storageManager
                 );
         }
 

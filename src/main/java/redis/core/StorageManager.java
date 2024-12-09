@@ -6,14 +6,29 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class StorageManager {
-    private final Map<String, MortalValue> store = new ConcurrentHashMap<>();
+    private final Map<String, MortalValue<?>> store = new ConcurrentHashMap<>();
 
-    public synchronized void put(String key, MortalValue value) {
+    public synchronized void put(String key, MortalValue<?> value) {
         store.put(key, value);
     }
 
-    public synchronized MortalValue get(String key) {
-        return store.get(key);
+    public synchronized <T> MortalValue<T> get(String key, Class<T> type) {
+        MortalValue<?> mortalValue = store.get(key);
+        if (mortalValue == null || mortalValue.isExpired()) {
+            return null;
+        }
+        if (type.isInstance(mortalValue.getValue())) {
+            return (MortalValue<T>) mortalValue;
+        }
+        throw new ClassCastException("Value not of expected type");
+    }
+
+    public synchronized MortalValue<?> getRawValue(String key) {
+        MortalValue<?> mortalValue = store.get(key);
+        if (mortalValue == null || mortalValue.isExpired()) {
+            return null;
+        }
+        return mortalValue;
     }
 
     public synchronized boolean containsKey(String key) {
@@ -28,11 +43,7 @@ public class StorageManager {
         return store.keySet();
     }
 
-    public synchronized Map<String, MortalValue> getStore() {
-        return store;
-    }
-
-    public synchronized Map<String, MortalValue> getStoreCopy() {
+    public synchronized Map<String, MortalValue<?>> getStoreCopy() {
         return new HashMap<>(store);  // Return a copy of the store
     }
 }

@@ -131,7 +131,7 @@ public class ReplicaHandler {
                     return;
                 }
                 String key = args[1], value = args[2];
-                storageManager.put(key, new MortalValue(value));
+                storageManager.put(key, new MortalValue<> (value));
                 break;
             default:
                 break;

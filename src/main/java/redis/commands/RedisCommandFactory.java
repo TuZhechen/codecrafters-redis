@@ -37,6 +37,8 @@ public class RedisCommandFactory {
                 return new WaitImpl();
             case "TYPE":
                 return new TypeImpl(storageManager);
+            case "XADD":
+                return new XaddImpl(storageManager);
             default:
                 return null;
         }

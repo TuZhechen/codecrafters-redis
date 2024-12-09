@@ -25,12 +25,12 @@ public class TypeImpl implements RedisCommandHandler {
         }
 
         key = args[1];
-        MortalValue value = storageManager.get(key);
+        MortalValue<?> mortalValue = storageManager.getRawValue(key);
 
-        if (value == null) {
+        if (mortalValue == null) {
             response = RESPEncoder.encodeSimpleString("none");
-        } else if (value.getValue() instanceof String) {
-            response = RESPEncoder.encodeSimpleString("string");
+        } else {
+            response = RESPEncoder.encodeSimpleString(mortalValue.getType());
         }
 
         clientHandler.getWriter().print(response);
