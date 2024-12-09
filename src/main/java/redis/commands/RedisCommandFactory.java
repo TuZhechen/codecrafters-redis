@@ -35,6 +35,8 @@ public class RedisCommandFactory {
                 return new PsyncImpl();
             case "WAIT":
                 return new WaitImpl();
+            case "TYPE":
+                return new TypeImpl(storageManager);
             default:
                 return null;
         }

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -49,12 +48,6 @@ public class WaitImpl implements RedisCommandHandler {
                         }
                     })
             );
-
-//            if (timeout > 0) {
-//                futures = futures.map(
-//                        future -> future.completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS)
-//                );
-//            }
 
             try {
                 CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).get();
