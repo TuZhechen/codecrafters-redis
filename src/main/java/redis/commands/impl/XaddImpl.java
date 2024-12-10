@@ -48,7 +48,7 @@ public class XaddImpl implements RedisCommandHandler {
             stream = streamValue.getValue();
         }
 
-        long currTimeStamp = Long.parseLong(id.split("-")[0]);
+        long currTimeStamp = id.equals("*") ? System.currentTimeMillis() : Long.parseLong(id.split("-")[0]);
         if (!stream.getEntries().isEmpty()) {
             String lastId = stream.getEntries()
                                   .getLast()
