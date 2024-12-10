@@ -28,17 +28,13 @@ public class XaddImpl implements RedisCommandHandler {
         }
 
         String key = args[1], id = args[2];
-        if (!isValidStreamId(id)) {
-            response = "-ERR make sure stream ID: <milliSecondTimes>-<sequenceNumber>\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
+        if (!isValidEntryId(id)) {
+            invalidIdResponse(clientHandler);
             return;
         }
 
-        if (compareStreamIds(id, "0-0") <= 0) {
-            response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
+        if (isExplictStreamId(id) && compareStreamIds(id, "0-0") <= 0) {
+            leqZeroIdResponse(clientHandler);
             return;
         }
 
@@ -52,16 +48,29 @@ public class XaddImpl implements RedisCommandHandler {
             stream = streamValue.getValue();
         }
 
+        long currTimeStamp = Long.parseLong(id.split("-")[0]);
         if (!stream.getEntries().isEmpty()) {
             String lastId = stream.getEntries()
-                                  .get(stream.getEntries().size() - 1)
+                                  .getLast()
                                   .getId();
-            if (compareStreamIds(id, lastId) <= 0) {
-                response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
-                clientHandler.getWriter().print(response);
-                clientHandler.getWriter().flush();
-                return;
+            long lastTimeStamp = Long.parseLong(lastId.split("-")[0]);
+            long lastIdSequence = Long.parseLong(lastId.split("-")[1]);
+            if (isExplictStreamId(id)) {
+                if (compareStreamIds(id, lastId) <= 0) {
+                    invalidOrderResponse(clientHandler);
+                    return;
+                }
+            } else {
+                if (lastTimeStamp > currTimeStamp) {
+                    invalidOrderResponse(clientHandler);
+                    return;
+                }
+                long currIdSequence =  currTimeStamp > lastTimeStamp ? 0 : lastIdSequence + 1;
+                id = currTimeStamp + "-" + currIdSequence;
             }
+        } else if(!isExplictStreamId(id)){
+            long currIdSequence = currTimeStamp > 0 ? 0: 1;
+            id = currTimeStamp + "-" + currIdSequence;
         }
 
         Map<String, String> entry = new HashMap<>();
@@ -75,16 +84,43 @@ public class XaddImpl implements RedisCommandHandler {
         clientHandler.getWriter().flush();
     }
 
-    private boolean isValidStreamId(String id) {
+    private void invalidOrderResponse(ClientHandler clientHandler) {
+        String response;
+        response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
+        clientHandler.getWriter().print(response);
+        clientHandler.getWriter().flush();
+    }
+
+    private void leqZeroIdResponse(ClientHandler clientHandler) {
+        String response;
+        response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
+        clientHandler.getWriter().print(response);
+        clientHandler.getWriter().flush();
+    }
+
+    private void invalidIdResponse(ClientHandler clientHandler) {
+        String response;
+        response = "-ERR illegal entry ID\r\n";
+        clientHandler.getWriter().print(response);
+        clientHandler.getWriter().flush();
+    }
+
+    private boolean isValidEntryId(String id) {
+        if (id.equals("*")) return true;
         String[] idParts = id.split("-");
         if (idParts.length != 2) return false;
+        return true;
+    }
+
+    private boolean isExplictStreamId(String id) {
         try {
+            String[] idParts = id.split("-");
             Long.parseLong(idParts[0]);
             Long.parseLong(idParts[1]);
-            return true;
-        } catch (NumberFormatException e) {
+        } catch (RuntimeException e) {
             return false;
         }
+        return true;
     }
 
     private int compareStreamIds(String id1, String id2) {
