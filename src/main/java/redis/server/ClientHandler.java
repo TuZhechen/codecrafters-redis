@@ -38,7 +38,7 @@ public class ClientHandler implements Runnable {
                     continue;
                 }
                 RedisCommandFactory redisCommandFactory = new RedisCommandFactory(storageManager, serverConfig);
-                RedisCommandHandler handler = redisCommandFactory.getCommandHandler(args[0]);
+                RedisCommandHandler handler = redisCommandFactory.getCommandHandler(args[0].toUpperCase());
                 handler.invoke(args, this);
             }
         } catch (Exception e) {

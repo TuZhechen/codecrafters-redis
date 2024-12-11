@@ -39,6 +39,8 @@ public class RedisCommandFactory {
                 return new TypeImpl(storageManager);
             case "XADD":
                 return new XaddImpl(storageManager);
+            case "XRANGE":
+                return new XrangeImpl(storageManager);
             default:
                 return null;
         }

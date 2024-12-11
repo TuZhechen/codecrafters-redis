@@ -1,11 +1,21 @@
 package redis.protocol.RESP.parsers;
 
+import java.util.List;
+
 public class ArraysImpl {
-    public String encode(String[] elements) {
+    public String encode(Object[] elements) {
         StringBuilder sb = new StringBuilder();
         sb.append("*").append(elements.length).append("\r\n");  // Format: *<num-elements>\r\n
-        for (String element : elements) {
-            sb.append(new BulkStringImpl().encode(element));  // Each element as a Bulk String
+        for (Object element : elements) {
+            if (element instanceof String) {
+                sb.append(new BulkStringImpl().encode((String) element));  // Each element as a Bulk String
+            } else if (element instanceof Object[]) {
+                sb.append((encode((Object[]) element)));
+            } else if (element instanceof List) {
+                sb.append(encode(((List<?>) element).toArray()));
+            } else {
+                sb.append(new BulkStringImpl().encode(element.toString()));
+            }
         }
         return sb.toString();
     }

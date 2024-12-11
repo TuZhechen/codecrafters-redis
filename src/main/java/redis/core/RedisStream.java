@@ -33,4 +33,25 @@ public class RedisStream {
     public List<StreamEntry> getEntries() {
         return new ArrayList<>(entries);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("RedisStream {");
+
+        for (StreamEntry entry : entries) {
+            sb.append("\n  Entry {")
+                    .append("Id: ").append(entry.getId())
+                    .append(", Fields: ").append(entry.getField())
+                    .append("}");
+        }
+
+        if (entries.isEmpty()) {
+            sb.append(" (empty)");
+        }
+
+        sb.append("\n}");
+        return sb.toString();
+    }
+
 }

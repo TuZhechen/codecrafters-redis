@@ -123,7 +123,7 @@ public class XaddImpl implements RedisCommandHandler {
         return true;
     }
 
-    private int compareStreamIds(String id1, String id2) {
+    public static int compareStreamIds(String id1, String id2) {
         String[] parts1 = id1.split("-"), parts2 = id2.split("-");
         long timestamp1 = Long.parseLong(parts1[0]), timestamp2 = Long.parseLong(parts2[0]);
         if (timestamp1 != timestamp2) {

@@ -19,7 +19,7 @@ public class RESPEncoder {
         return new BulkStringImpl().encodeLength(value);
     }
 
-    public static String encodeArray(String[] elements) {
+    public static String encodeArray(Object[] elements) {
         return new ArraysImpl().encode(elements);
     }
 }
