@@ -29,7 +29,8 @@ public class XrangeImpl implements RedisCommandHandler {
             return;
         }
 
-        String streamKey = args[1], startId = args[2], endId = args[3];
+        String streamKey = args[1], endId = args[3];
+        String startId = args[2].equals("-") ? "0-0": args[2];
         MortalValue<RedisStream> v = storageManager.get(streamKey, RedisStream.class);
         RedisStream stream = v.getValue();
         List<List<Object>> streamEntries = stream.getEntries().stream()
