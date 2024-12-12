@@ -41,6 +41,8 @@ public class RedisCommandFactory {
                 return new XaddImpl(storageManager);
             case "XRANGE":
                 return new XrangeImpl(storageManager);
+            case "XREAD":
+                return new XreadImpl(storageManager);
             default:
                 return null;
         }

@@ -22,15 +22,17 @@ public class XrangeImpl implements RedisCommandHandler {
     @Override
     public void invoke(String[] args, ClientHandler clientHandler) {
         String response;
-        if (args.length < 4) {
-            response = "-ERR wrong number of arguments for 'XRANGE'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
+        if (args.length != 4) {
+            illegalNumOfArg(clientHandler);
             return;
         }
 
         String streamKey = args[1], startId = args[2], endId = args[3];
         MortalValue<RedisStream> v = storageManager.get(streamKey, RedisStream.class);
+        if (v == null) {
+            streamNotExist(clientHandler,streamKey);
+            return;
+        }
         RedisStream stream = v.getValue();
         List<List<Object>> streamEntries = stream.getEntries().stream()
                 .filter(entry ->
@@ -44,6 +46,20 @@ public class XrangeImpl implements RedisCommandHandler {
                 )).toList();
 
         response = RESPEncoder.encodeArray(streamEntries.toArray());
+        clientHandler.getWriter().print(response);
+        clientHandler.getWriter().flush();
+    }
+
+    private void illegalNumOfArg(ClientHandler clientHandler) {
+        String response;
+        response = "-ERR wrong number of arguments for 'XRANGE'\r\n";
+        clientHandler.getWriter().print(response);
+        clientHandler.getWriter().flush();
+    }
+
+    private static void streamNotExist(ClientHandler clientHandler, String key) {
+        String response;
+        response = "-ERR stream " + key + " does not exist\r\n";
         clientHandler.getWriter().print(response);
         clientHandler.getWriter().flush();
     }
