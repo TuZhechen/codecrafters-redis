@@ -22,7 +22,8 @@ public class XreadImpl implements RedisCommandHandler {
     @Override
     public void invoke(String[] args, ClientHandler clientHandler) {
         String response;
-        if (args.length != 4) {
+        int argLength = args.length;
+        if (argLength < 4 && (argLength - 2) % 2 != 0) {
             illegalNumOfArg(clientHandler);
             return;
         } else if (!args[1].equalsIgnoreCase("streams")) {
@@ -30,34 +31,47 @@ public class XreadImpl implements RedisCommandHandler {
             return;
         }
 
-        String key = args[2], id = args[3], targetId = null;
-        MortalValue<RedisStream> v = storageManager.get(key, RedisStream.class);
-        if (v == null) {
-            streamNotExist(clientHandler, key);
-            return;
+        int numOfStreams = (argLength - 2) / 2;
+        String[] keys = new String[numOfStreams], ids = new String[numOfStreams];
+
+        for (int i = 0; i < numOfStreams; i++) {
+            keys[i] = args[i+2];
+            ids[i] = args[i+2+numOfStreams];
         }
-        RedisStream stream = v.getValue();
-        RedisStream.StreamEntry targetEntry = null;
-        for (RedisStream.StreamEntry entry: stream.getEntries()) {
-            if(XaddImpl.compareStreamIds(entry.getId(), id) > 0 ) {
-                targetId = entry.getId();
-                targetEntry = entry;
-                break;
+
+        List<Object> result = new ArrayList<>();
+        for (int i = 0; i < numOfStreams; i++) {
+            String key = keys[i] , id = ids[i], targetId = null;
+            List<Object> streamList = new ArrayList<>(), entryList = new ArrayList<>();
+            MortalValue<RedisStream> v = storageManager.get(key, RedisStream.class);
+            if (v == null) {
+                streamNotExist(clientHandler, key);
+                return;
             }
+            RedisStream stream = v.getValue();
+            RedisStream.StreamEntry targetEntry = null;
+            for (RedisStream.StreamEntry entry: stream.getEntries()) {
+                if(XaddImpl.compareStreamIds(entry.getId(), id) > 0 ) {
+                    targetId = entry.getId();
+                    targetEntry = entry;
+                    break;
+                }
+            }
+            if (targetId == null) {
+                noEntryRetrieved(clientHandler);
+                return;
+            }
+
+            entryList.add(targetId);
+            entryList.add(targetEntry.getField().entrySet().stream()
+                                  .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
+                                  .collect(Collectors.toList())
+            );
+            streamList.add(key);
+            streamList.add(List.of(entryList));
+            result.add(streamList);
         }
-        if (targetId == null) {
-            noEntryRetrieved(clientHandler);
-            return;
-        }
-        List<Object> result = new ArrayList<>(), streamList = new ArrayList<>(), entryList = new ArrayList<>();
-        entryList.add(targetId);
-        entryList.add(targetEntry.getField().entrySet().stream()
-                              .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
-                              .collect(Collectors.toList())
-        );
-        streamList.add(key);
-        streamList.add(List.of(entryList));
-        result.add(streamList);
+
 
         response = RESPEncoder.encodeArray(result.toArray());
         System.out.println(response);
