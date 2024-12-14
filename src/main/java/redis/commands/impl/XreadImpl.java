@@ -33,7 +33,7 @@ public class XreadImpl implements RedisCommandHandler {
                 System.err.println("Invalid block time: " + args[2]);
             }
             offset = 2;
-            isBlockRead = blockTime > 0;
+            isBlockRead = blockTime >= 0;
         }
         if (argLength < 4 && (argLength - offset - 2) % 2 != 0) {
             illegalNumOfArg(clientHandler);
@@ -67,6 +67,7 @@ public class XreadImpl implements RedisCommandHandler {
             }
 
             if (isBlockRead) {
+                if (blockTime == 0) continue;
                 boolean isTimeOut = System.currentTimeMillis() - startTime > blockTime;
                 if (isTimeOut) {
                     noEntryRetrieved(clientHandler);
