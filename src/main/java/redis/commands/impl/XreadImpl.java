@@ -47,7 +47,14 @@ public class XreadImpl implements RedisCommandHandler {
         String[] keys = new String[numOfStreams], ids = new String[numOfStreams];
         for (int i = 0; i < numOfStreams; i++) {
             keys[i] = args[offset + i + 2];
-            ids[i] = args[offset + i + 2 + numOfStreams];
+            String id = args[offset + i + 2 + numOfStreams];
+            if (id.equals("$")) {
+                RedisStream.StreamEntry lastEntryFromSnapshot = getLastEntryFromSnapshot(keys[i]);
+                if (lastEntryFromSnapshot != null) {
+                    id = lastEntryFromSnapshot.getId();
+                }
+            }
+            ids[i] = id;
         }
 
         long startTime = isBlockRead ? System.currentTimeMillis() : 0;
@@ -75,6 +82,18 @@ public class XreadImpl implements RedisCommandHandler {
                 }
             }
         }
+    }
+
+    private RedisStream.StreamEntry getLastEntryFromSnapshot(String keys) {
+        MortalValue<RedisStream> mv = storageManager.get(keys, RedisStream.class);
+        if (mv != null) {
+            RedisStream stream = mv.getValue();
+            List<RedisStream.StreamEntry> entries  = stream.getEntries();
+            if (!entries.isEmpty()) {
+                return entries.getLast();
+            }
+        }
+        return null;
     }
 
     private boolean processStreams(String[] keys, String[] ids, List<Object> result) {
