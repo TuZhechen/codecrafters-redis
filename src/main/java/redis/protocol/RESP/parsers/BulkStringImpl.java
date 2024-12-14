@@ -2,6 +2,7 @@ package redis.protocol.RESP.parsers;
 
 public class BulkStringImpl {
     public String encode(String rawString) {
+        if (rawString.isEmpty()) return "$-1\r\n";
         int length = rawString.length();
         return "$" + length + "\r\n" + rawString + "\r\n";  // Format: $<length>\r\n<value>\r\n
     }

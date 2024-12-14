@@ -21,65 +21,77 @@ public class XreadImpl implements RedisCommandHandler {
 
     @Override
     public void invoke(String[] args, ClientHandler clientHandler) {
-        String response;
-        int argLength = args.length;
-        if (argLength < 4 && (argLength - 2) % 2 != 0) {
+        int argLength = args.length, offset = 0;
+        boolean isBlockRead = false;
+        long blockTime = 0;
+        if (args[1].equalsIgnoreCase("block")) {
+            try {
+                blockTime = Long.parseLong(args[2]);
+            } catch (IndexOutOfBoundsException e) {
+                System.err.println("Illegal block read");
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid block time: " + args[2]);
+            }
+            offset = 2;
+            isBlockRead = blockTime > 0;
+        }
+        if (argLength < 4 && (argLength - offset - 2) % 2 != 0) {
             illegalNumOfArg(clientHandler);
             return;
-        } else if (!args[1].equalsIgnoreCase("streams")) {
+        } else if (!args[offset + 1].equalsIgnoreCase("streams")) {
             wrongReadHeader(clientHandler);
             return;
         }
 
-        int numOfStreams = (argLength - 2) / 2;
+        int numOfStreams = (argLength - offset - 2) / 2;
         String[] keys = new String[numOfStreams], ids = new String[numOfStreams];
-
         for (int i = 0; i < numOfStreams; i++) {
-            keys[i] = args[i+2];
-            ids[i] = args[i+2+numOfStreams];
+            keys[i] = args[offset + i + 2];
+            ids[i] = args[offset + i + 2 + numOfStreams];
         }
 
+        long startTime = isBlockRead ? System.currentTimeMillis() : 0;
         List<Object> result = new ArrayList<>();
-        for (int i = 0; i < numOfStreams; i++) {
-            String key = keys[i] , id = ids[i], targetId = null;
-            List<Object> streamList = new ArrayList<>(), entryList = new ArrayList<>();
-            MortalValue<RedisStream> v = storageManager.get(key, RedisStream.class);
-            if (v == null) {
-                streamNotExist(clientHandler, key);
-                return;
-            }
-            RedisStream stream = v.getValue();
-            RedisStream.StreamEntry targetEntry = null;
-            for (RedisStream.StreamEntry entry: stream.getEntries()) {
-                if(XaddImpl.compareStreamIds(entry.getId(), id) > 0 ) {
-                    targetId = entry.getId();
-                    targetEntry = entry;
-                    break;
+        while (true) {
+            result.clear();
+            boolean entriesFound = processStreams(keys, ids, result);
+
+            if (!isBlockRead || entriesFound) {
+                if (entriesFound) {
+                    successResponse(clientHandler, result);
+                    return;
+                } else {
+                    noEntryRetrieved(clientHandler);
+                    return;
                 }
             }
-            if (targetId == null) {
-                noEntryRetrieved(clientHandler);
-                return;
+
+            if (isBlockRead) {
+                boolean isTimeOut = System.currentTimeMillis() - startTime > blockTime;
+                if (isTimeOut) {
+                    noEntryRetrieved(clientHandler);
+                    return;
+                }
             }
-
-            entryList.add(targetId);
-            entryList.add(targetEntry.getField().entrySet().stream()
-                                  .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
-                                  .collect(Collectors.toList())
-            );
-            streamList.add(key);
-            streamList.add(List.of(entryList));
-            result.add(streamList);
         }
-
-
-        response = RESPEncoder.encodeArray(result.toArray());
-        System.out.println(response);
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
     }
 
+    private boolean processStreams(String[] keys, String[] ids, List<Object> result) {
+        boolean entriesFound = false;
+        for (int i = 0; i < keys.length; i++) {
+            String key = keys[i] , id = ids[i];
+            MortalValue<RedisStream> v = storageManager.get(key, RedisStream.class);
+            if (v == null) continue;
 
+            RedisStream stream = v.getValue();
+            RedisStream.StreamEntry targetEntry = findTargetEntry(stream, id);
+            if (targetEntry != null) {
+                addEntry(result, key, targetEntry);
+                entriesFound = true;
+            }
+        }
+        return entriesFound;
+    }
 
     private void illegalNumOfArg(ClientHandler clientHandler) {
         String response;
@@ -104,7 +116,36 @@ public class XreadImpl implements RedisCommandHandler {
 
     private void noEntryRetrieved(ClientHandler clientHandler) {
         String response;
-        response = RESPEncoder.encodeSimpleString("No entry retrieved");
+        response = RESPEncoder.encodeBulkString("");
+        clientHandler.getWriter().print(response);
+        clientHandler.getWriter().flush();
+    }
+
+    private RedisStream.StreamEntry findTargetEntry(RedisStream stream, String id) {
+        for (RedisStream.StreamEntry entry: stream.getEntries()) {
+            if(XaddImpl.compareStreamIds(entry.getId(), id) > 0 ) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private void addEntry(List<Object> result, String key, RedisStream.StreamEntry target) {
+        List<Object> entryList = new ArrayList<>();
+        entryList.add(target.getId());
+        entryList.add(target.getField().entrySet().stream()
+                              .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
+                              .collect(Collectors.toList())
+        );
+
+        List<Object> streamList = new ArrayList<>();
+        streamList.add(key);
+        streamList.add(List.of(entryList));
+        result.add(streamList);
+    }
+
+    private static void successResponse(ClientHandler clientHandler, List<Object> result) {
+        String response = RESPEncoder.encodeArray(result.toArray());
         clientHandler.getWriter().print(response);
         clientHandler.getWriter().flush();
     }
