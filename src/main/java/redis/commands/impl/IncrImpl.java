@@ -26,7 +26,9 @@ public class IncrImpl implements RedisCommandHandler {
         String key = args[1];
         MortalValue<?> mortalValue = storageManager.getRawValue(key);
         if (mortalValue == null) {
-            response = "-ERR key '" + key + "' does not exist\r\n";
+            mortalValue = new MortalValue<> ("1");
+            storageManager.put(key, mortalValue);
+            response = RESPEncoder.encodeInteger(1);
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
             return;
