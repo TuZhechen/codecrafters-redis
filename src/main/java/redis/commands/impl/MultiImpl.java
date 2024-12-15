@@ -16,6 +16,8 @@ public class MultiImpl implements RedisCommandHandler {
             return;
         }
 
+        clientHandler.setInTransaction(true);
+        clientHandler.getCommandQueue().clear();
         response = RESPEncoder.encodeSimpleString("OK");
         clientHandler.getWriter().print(response);
         clientHandler.getWriter().flush();

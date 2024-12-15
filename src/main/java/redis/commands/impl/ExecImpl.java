@@ -1,7 +1,10 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.protocol.RESP.RESPEncoder;
 import redis.server.ClientHandler;
+
+import java.util.Queue;
 
 public class ExecImpl implements RedisCommandHandler {
 
@@ -15,8 +18,20 @@ public class ExecImpl implements RedisCommandHandler {
             return;
         }
 
-        response = "-ERR EXEC without MULTI\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!clientHandler.isInTransaction()) {
+            response = "-ERR EXEC without MULTI\r\n";
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+            return;
+        }
+
+        Queue<String []> commandQueue = clientHandler.getCommandQueue();
+        if (commandQueue.isEmpty()) {
+            response = RESPEncoder.encodeArray(new Object[] {});
+            clientHandler.setInTransaction(false);
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+            return;
+        }
     }
 }

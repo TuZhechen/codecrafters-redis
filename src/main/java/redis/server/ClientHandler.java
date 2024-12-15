@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
@@ -18,6 +20,8 @@ public class ClientHandler implements Runnable {
     private final ServerConfig serverConfig;
     private final BufferedReader reader;
     private final PrintWriter writer;
+    private boolean inTransaction = false;
+    private Queue<String[]> commandQueue = new LinkedList<>();
 
     public ClientHandler(Socket clientSocket, StorageManager storageManager, ServerConfig serverConfig) throws IOException {
         this.clientSocket = clientSocket;
@@ -62,5 +66,22 @@ public class ClientHandler implements Runnable {
 
     public Socket getClientSocket() {
         return clientSocket;
+    }
+
+    public boolean isInTransaction() {
+        return inTransaction;
+    }
+
+    public void setInTransaction(boolean inTransaction) {
+        this.inTransaction = inTransaction;
+    }
+
+    public Queue<String[]> getCommandQueue() {
+        return commandQueue;
+    }
+
+    public void clearTransaction() {
+        inTransaction = false;
+        commandQueue.clear();
     }
 }
