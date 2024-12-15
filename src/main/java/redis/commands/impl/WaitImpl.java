@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.protocol.RESP.RESPEncoder;
 import redis.replication.ReplicaManager;
 import redis.server.ClientHandler;
@@ -28,6 +29,8 @@ public class WaitImpl implements RedisCommandHandler {
             clientHandler.getWriter().flush();
             return;
         }
+
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
 
         try {
             int expectedCount = Integer.parseInt(args[1]), timeout = Integer.parseInt(args[2]);

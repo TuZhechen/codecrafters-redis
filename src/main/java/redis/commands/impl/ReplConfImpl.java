@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.protocol.RESP.parsers.SimpleStringImpl;
 import redis.server.ClientHandler;
 
@@ -19,6 +20,9 @@ public class ReplConfImpl implements RedisCommandHandler {
                 clientHandler.getWriter().flush();
                 return;
             }
+
+            if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+
             System.out.println("Received command: " + Arrays.toString(args));
 
             try {

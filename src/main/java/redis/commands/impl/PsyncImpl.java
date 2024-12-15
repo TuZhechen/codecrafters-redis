@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.protocol.RESP.RESPEncoder;
 import redis.replication.ReplicaManager;
 import redis.server.ClientHandler;
@@ -18,6 +19,8 @@ public class PsyncImpl implements RedisCommandHandler {
 
     @Override
     public void invoke(String[] args, ClientHandler clientHandler) throws IOException {
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+
         String response = RESPEncoder.encodeSimpleString("FULLRESYNC " + replid + " 0");
         clientHandler.getWriter().print(response);
         clientHandler.getWriter().flush();

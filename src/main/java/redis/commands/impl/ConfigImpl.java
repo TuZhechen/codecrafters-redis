@@ -1,5 +1,6 @@
 package redis.commands.impl;
 
+import redis.commands.TransactionHelper;
 import redis.core.ServerConfig;
 import redis.commands.RedisCommandHandler;
 import redis.protocol.RESP.RESPEncoder;
@@ -21,6 +22,9 @@ public class ConfigImpl implements RedisCommandHandler {
             clientHandler.getWriter().flush();
             return;
         }
+
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+
         String option = args[1], name = args[2];
         if ("GET".equalsIgnoreCase(option)) {
             String value = serverConfig.get(name);

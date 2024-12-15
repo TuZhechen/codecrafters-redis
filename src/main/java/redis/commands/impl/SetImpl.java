@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.core.MortalValue;
 import redis.core.StorageManager;
 import redis.protocol.RESP.RESPEncoder;
@@ -23,6 +24,9 @@ public class SetImpl implements RedisCommandHandler {
             clientHandler.getWriter().flush();
             return;
         }
+
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+
         String key = args[1], value = args[2];
         MortalValue mortalValue = new MortalValue<> (value);
 

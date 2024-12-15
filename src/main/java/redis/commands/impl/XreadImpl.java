@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.core.MortalValue;
 import redis.core.RedisStream;
 import redis.core.StorageManager;
@@ -42,6 +43,8 @@ public class XreadImpl implements RedisCommandHandler {
             wrongReadHeader(clientHandler);
             return;
         }
+
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
 
         int numOfStreams = (argLength - offset - 2) / 2;
         String[] keys = new String[numOfStreams], ids = new String[numOfStreams];

@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.core.MortalValue;
 import redis.core.RedisStream;
 import redis.core.StorageManager;
@@ -26,6 +27,8 @@ public class XaddImpl implements RedisCommandHandler {
             clientHandler.getWriter().flush();
             return;
         }
+
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
 
         String key = args[1], id = args[2];
         if (!isValidEntryId(id)) {

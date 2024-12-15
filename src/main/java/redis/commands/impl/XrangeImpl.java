@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.core.MortalValue;
 import redis.core.RedisStream;
 import redis.core.StorageManager;
@@ -26,6 +27,8 @@ public class XrangeImpl implements RedisCommandHandler {
             illegalNumOfArg(clientHandler);
             return;
         }
+
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
 
         String streamKey = args[1], startId = args[2], endId = args[3];
         MortalValue<RedisStream> v = storageManager.get(streamKey, RedisStream.class);

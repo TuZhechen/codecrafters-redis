@@ -1,6 +1,7 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.core.StorageManager;
 import redis.protocol.RESP.RESPEncoder;
 import redis.server.ClientHandler;
@@ -20,6 +21,9 @@ public class KeysImpl implements RedisCommandHandler {
             clientHandler.getWriter().print(response);
             return;
         }
+
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+
         String pattern = args[1];
         String regex = pattern.replace("*", ".*");
         String[] matchedKeys = storageManager.keySet().stream()
