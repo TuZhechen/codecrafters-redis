@@ -49,7 +49,7 @@ public class IncrImpl implements RedisCommandHandler {
             MortalValue<String> newMortalValue = new MortalValue<>(newValue);
             storageManager.put(key, newMortalValue);
         } catch (NumberFormatException e) {
-            response = "-ERR target value is not a number string\r\n";
+            response = "-ERR value is not an integer or out of range\r\n";
         }
 
         clientHandler.getWriter().print(response);
