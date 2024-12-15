@@ -45,6 +45,8 @@ public class RedisCommandFactory {
                 return new XreadImpl(storageManager);
             case "INCR":
                 return new IncrImpl(storageManager);
+            case "MULTI":
+                return new MultiImpl();
             default:
                 return null;
         }
