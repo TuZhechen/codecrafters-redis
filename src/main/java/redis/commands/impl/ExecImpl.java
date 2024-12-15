@@ -1,22 +1,21 @@
 package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
-import redis.protocol.RESP.RESPEncoder;
 import redis.server.ClientHandler;
 
-public class MultiImpl implements RedisCommandHandler {
+public class ExecImpl implements RedisCommandHandler {
 
     @Override
     public void invoke(String[] args, ClientHandler clientHandler) {
         String response;
         if (args.length > 1) {
-            response = "-ERR wrong number of arguments for 'MULTI'\r\n";
+            response = "-ERR wrong number of arguments for 'EXEC'\r\n";
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
             return;
         }
 
-        response = RESPEncoder.encodeSimpleString("OK");
+        response = "-ERR EXEC without MULTI\r\n";
         clientHandler.getWriter().print(response);
         clientHandler.getWriter().flush();
     }

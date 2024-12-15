@@ -47,6 +47,8 @@ public class RedisCommandFactory {
                 return new IncrImpl(storageManager);
             case "MULTI":
                 return new MultiImpl();
+            case "EXEC":
+                return new ExecImpl();
             default:
                 return null;
         }
