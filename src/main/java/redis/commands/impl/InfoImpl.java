@@ -14,8 +14,8 @@ public class InfoImpl implements RedisCommandHandler{
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
         String response, info;
         if ("slave".equalsIgnoreCase(serverConfig.get("role"))) {
             info = "role:slave";
@@ -26,7 +26,10 @@ public class InfoImpl implements RedisCommandHandler{
                     "master_repl_offset:0";
         }
         response = RESPEncoder.encodeBulkString(info);
-        clientHandler.getWriter().write(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().write(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 }

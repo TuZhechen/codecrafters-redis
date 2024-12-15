@@ -19,26 +19,26 @@ public class XaddImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 5 || (args.length - 3) % 2 != 0) {
             response = "-ERR wrong number of arguments for 'XADD'\r\n";
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String key = args[1], id = args[2];
         if (!isValidEntryId(id)) {
             invalidIdResponse(clientHandler);
-            return;
+            return null;
         }
 
         if (isExplictStreamId(id) && compareStreamIds(id, "0-0") <= 0) {
             leqZeroIdResponse(clientHandler);
-            return;
+            return null;
         }
 
         MortalValue<RedisStream> streamValue = storageManager.get(key, RedisStream.class);
@@ -61,12 +61,12 @@ public class XaddImpl implements RedisCommandHandler {
             if (isExplictStreamId(id)) {
                 if (compareStreamIds(id, lastId) <= 0) {
                     invalidOrderResponse(clientHandler);
-                    return;
+                    return null;
                 }
             } else {
                 if (lastTimeStamp > currTimeStamp) {
                     invalidOrderResponse(clientHandler);
-                    return;
+                    return null;
                 }
                 long currIdSequence =  currTimeStamp > lastTimeStamp ? 0 : lastIdSequence + 1;
                 id = currTimeStamp + "-" + currIdSequence;
@@ -83,8 +83,11 @@ public class XaddImpl implements RedisCommandHandler {
         stream.addEntry(id, entry);
 
         response = RESPEncoder.encodeBulkString(id);
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 
     private void invalidOrderResponse(ClientHandler clientHandler) {

@@ -15,27 +15,30 @@ public class GetImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler,boolean invokeFromExec) {
         String response;
         if (args.length < 2) {
             response = "-ERR wrong number of arguments for 'GET'\r\n";
             clientHandler.getWriter().print(response);
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String key = args[1];
         MortalValue<String> mortalValue = storageManager.get(key, String.class);
 
         if (mortalValue != null && !mortalValue.isExpired()) {
             response = RESPEncoder.encodeBulkString(mortalValue.getValue());
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
         } else {
             System.out.println("Found nothing");
-            clientHandler.getWriter().print("$-1\r\n");
+            response = RESPEncoder.encodeBulkString("");
+        }
+
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
         }
+        return response;
     }
 }

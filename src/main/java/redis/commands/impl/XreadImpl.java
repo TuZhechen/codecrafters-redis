@@ -21,7 +21,7 @@ public class XreadImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         int argLength = args.length, offset = 0;
         boolean isBlockRead = false;
         long blockTime = 0;
@@ -38,13 +38,13 @@ public class XreadImpl implements RedisCommandHandler {
         }
         if (argLength < 4 && (argLength - offset - 2) % 2 != 0) {
             illegalNumOfArg(clientHandler);
-            return;
+            return null;
         } else if (!args[offset + 1].equalsIgnoreCase("streams")) {
             wrongReadHeader(clientHandler);
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         int numOfStreams = (argLength - offset - 2) / 2;
         String[] keys = new String[numOfStreams], ids = new String[numOfStreams];
@@ -68,11 +68,10 @@ public class XreadImpl implements RedisCommandHandler {
 
             if (!isBlockRead || entriesFound) {
                 if (entriesFound) {
-                    successResponse(clientHandler, result);
-                    return;
+                    return successResponse(clientHandler, result, invokeFromExec);
                 } else {
                     noEntryRetrieved(clientHandler);
-                    return;
+                    return null;
                 }
             }
 
@@ -81,7 +80,7 @@ public class XreadImpl implements RedisCommandHandler {
                 boolean isTimeOut = System.currentTimeMillis() - startTime > blockTime;
                 if (isTimeOut) {
                     noEntryRetrieved(clientHandler);
-                    return;
+                    return null;
                 }
             }
         }
@@ -167,9 +166,12 @@ public class XreadImpl implements RedisCommandHandler {
         result.add(streamList);
     }
 
-    private static void successResponse(ClientHandler clientHandler, List<Object> result) {
+    private static String successResponse(ClientHandler clientHandler, List<Object> result, boolean invokeFromExec) {
         String response = RESPEncoder.encodeArray(result.toArray());
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 }

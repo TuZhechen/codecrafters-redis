@@ -21,16 +21,16 @@ public class WaitImpl implements RedisCommandHandler {
     private static final AtomicInteger ackedReplicaCount = new AtomicInteger(0);
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length != 3) {
             response = "-ERR wrong number of arguments for 'WAIT'\r\n";
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         try {
             int expectedCount = Integer.parseInt(args[1]), timeout = Integer.parseInt(args[2]);
@@ -80,7 +80,10 @@ public class WaitImpl implements RedisCommandHandler {
             response = "-ERR invalid arguments for 'WAIT'\r\n";
         }
 
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 }

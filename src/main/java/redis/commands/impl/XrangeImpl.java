@@ -21,20 +21,20 @@ public class XrangeImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length != 4) {
             illegalNumOfArg(clientHandler);
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String streamKey = args[1], startId = args[2], endId = args[3];
         MortalValue<RedisStream> v = storageManager.get(streamKey, RedisStream.class);
         if (v == null) {
             streamNotExist(clientHandler,streamKey);
-            return;
+            return null;
         }
         RedisStream stream = v.getValue();
         List<List<Object>> streamEntries = stream.getEntries().stream()
@@ -49,8 +49,11 @@ public class XrangeImpl implements RedisCommandHandler {
                 )).toList();
 
         response = RESPEncoder.encodeArray(streamEntries.toArray());
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 
     private void illegalNumOfArg(ClientHandler clientHandler) {

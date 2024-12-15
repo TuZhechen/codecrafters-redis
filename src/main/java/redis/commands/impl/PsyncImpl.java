@@ -18,8 +18,8 @@ public class PsyncImpl implements RedisCommandHandler {
     private final String replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) throws IOException {
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) throws IOException {
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String response = RESPEncoder.encodeSimpleString("FULLRESYNC " + replid + " 0");
         clientHandler.getWriter().print(response);
@@ -34,6 +34,7 @@ public class PsyncImpl implements RedisCommandHandler {
         outputStream.flush();
 
         startCommandPropagation(clientHandler);
+        return response;
     }
 
     private byte[] createEmptyRdbFile() {

@@ -12,16 +12,15 @@ public class ReplConfImpl implements RedisCommandHandler {
     private static final AtomicInteger ackCount = new AtomicInteger(0);
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         if (args[1].equalsIgnoreCase("ACK")) {
             if (args.length != 3) {
                 String error = "-ERR wrong number of arguments for 'ACK'\r\n";
                 clientHandler.getWriter().print(error);
                 clientHandler.getWriter().flush();
-                return;
             }
 
-            if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+            if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
             System.out.println("Received command: " + Arrays.toString(args));
 
@@ -33,11 +32,16 @@ public class ReplConfImpl implements RedisCommandHandler {
             } catch (NumberFormatException e) {
                 System.err.println("Invalid ACK offset: " + args[2]);
             }
+
+            return null;
         }
         else {
             String response = new SimpleStringImpl().encode("OK");
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
+            if (!invokeFromExec) {
+                clientHandler.getWriter().print(response);
+                clientHandler.getWriter().flush();
+            }
+            return response;
         }
     }
 

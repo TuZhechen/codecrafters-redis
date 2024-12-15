@@ -16,16 +16,16 @@ public class TypeImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response = null, key;
         if (args.length != 2) {
             response = "-ERR wrong number of arguments for 'TYPE'\r\n";
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         key = args[1];
         MortalValue<?> mortalValue = storageManager.getRawValue(key);
@@ -36,8 +36,10 @@ public class TypeImpl implements RedisCommandHandler {
             response = RESPEncoder.encodeSimpleString(mortalValue.getType());
         }
 
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
-
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 }

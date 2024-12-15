@@ -16,16 +16,16 @@ public class SetImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 3) {
             response = "-ERR wrong number of arguments for 'SET'\r\n";
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String key = args[1], value = args[2];
         MortalValue mortalValue = new MortalValue<> (value);
@@ -38,20 +38,23 @@ public class SetImpl implements RedisCommandHandler {
                 response = "-ERR invalid PX value\r\n";
                 clientHandler.getWriter().print(response);
                 clientHandler.getWriter().flush();
-                return;
+                return null;
             }
         }
 
         storageManager.put(key, mortalValue);
         response = RESPEncoder.encodeSimpleString("OK");
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
 
         String command = RESPEncoder.encodeArray(
           new String[] {"SET", key, value}
         );
         ReplicaManager.propagateCommand(command);
 
+        return response;
     }
 
 }

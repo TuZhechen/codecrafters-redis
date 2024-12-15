@@ -7,8 +7,8 @@ import redis.server.ClientHandler;
 
 public class EchoImpl implements RedisCommandHandler {
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String response;
         if (args.length > 1) {
@@ -16,8 +16,11 @@ public class EchoImpl implements RedisCommandHandler {
         } else {
             response = "-ERR wrong number of arguments for 'ECHO'\n";
         }
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 }
 

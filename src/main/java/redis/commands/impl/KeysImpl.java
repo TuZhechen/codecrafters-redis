@@ -14,15 +14,15 @@ public class KeysImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 2) {
             response = "-ERR KEYS requires at least one pattern argument";
             clientHandler.getWriter().print(response);
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String pattern = args[1];
         String regex = pattern.replace("*", ".*");
@@ -32,7 +32,10 @@ public class KeysImpl implements RedisCommandHandler {
         response = RESPEncoder.encodeArray(
                 matchedKeys
         );
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 }

@@ -15,8 +15,12 @@ public class RESPDecoder {
         return new BulkStringImpl().decode(respString);
     }
 
-    public static String[] decodeArray(String respString) {
+    public static Object[] decodeArray(String respString) {
         return new ArraysImpl().decode(respString);
+    }
+
+    public static int decodeInteger(String respString) {
+        return new IntegerImpl().decode(respString);
     }
 
     public static String[] decodeCommand(BufferedReader reader) throws IOException {

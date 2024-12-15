@@ -14,16 +14,16 @@ public class ConfigImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 3) {
             response = "-ERR wrong number of arguments for 'CONFIG'\r\n";
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String option = args[1], name = args[2];
         if ("GET".equalsIgnoreCase(option)) {
@@ -31,8 +31,13 @@ public class ConfigImpl implements RedisCommandHandler {
             response = RESPEncoder.encodeArray(
               new String[] {name, value}
             );
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
+            if (!invokeFromExec) {
+                clientHandler.getWriter().print(response);
+                clientHandler.getWriter().flush();
+            }
+            return response;
         }
+
+        return null;
     }
 }

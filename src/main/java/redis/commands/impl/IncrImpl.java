@@ -15,16 +15,16 @@ public class IncrImpl implements RedisCommandHandler {
     }
 
     @Override
-    public void invoke(String[] args, ClientHandler clientHandler) {
+    public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 2) {
             response = "-ERR wrong number of arguments for 'INCR'\r\n";
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
-            return;
+            return null;
         }
 
-        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return;
+        if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String key = args[1];
         MortalValue<?> mortalValue = storageManager.getRawValue(key);
@@ -32,30 +32,32 @@ public class IncrImpl implements RedisCommandHandler {
             mortalValue = new MortalValue<> ("1");
             storageManager.put(key, mortalValue);
             response = RESPEncoder.encodeInteger(1);
+        } else {
+            Object value = mortalValue.getValue();
+            if (!(value instanceof String)) {
+                response = "-ERR target value cannot be parsed and increased\r\n";
+                clientHandler.getWriter().print(response);
+                clientHandler.getWriter().flush();
+                return null;
+            }
+
+            try {
+                int number = Integer.parseInt((String) value);
+                response = RESPEncoder.encodeInteger(++number);
+                String newValue = String.valueOf(number);
+                MortalValue<String> newMortalValue = new MortalValue<>(newValue);
+                storageManager.put(key, newMortalValue);
+            } catch (NumberFormatException e) {
+                response = "-ERR value is not an integer or out of range\r\n";
+            }
+
+        }
+
+
+        if (!invokeFromExec) {
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
-            return;
         }
-
-        Object value = mortalValue.getValue();
-        if (!(value instanceof String)) {
-            response = "-ERR target value cannot be parsed and increased\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return;
-        }
-
-        try {
-            int number = Integer.parseInt((String) value);
-            response = RESPEncoder.encodeInteger(++number);
-            String newValue = String.valueOf(number);
-            MortalValue<String> newMortalValue = new MortalValue<>(newValue);
-            storageManager.put(key, newMortalValue);
-        } catch (NumberFormatException e) {
-            response = "-ERR value is not an integer or out of range\r\n";
-        }
-
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        return response;
     }
 }
