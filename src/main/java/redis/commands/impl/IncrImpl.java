@@ -18,10 +18,8 @@ public class IncrImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 2) {
-            response = "-ERR wrong number of arguments for 'INCR'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
+            response = "ERR wrong number of arguments for 'INCR'";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
@@ -35,10 +33,8 @@ public class IncrImpl implements RedisCommandHandler {
         } else {
             Object value = mortalValue.getValue();
             if (!(value instanceof String)) {
-                response = "-ERR target value cannot be parsed and increased\r\n";
-                clientHandler.getWriter().print(response);
-                clientHandler.getWriter().flush();
-                return null;
+                response = "ERR target value cannot be parsed and increased";
+                return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
             }
 
             try {
@@ -48,7 +44,7 @@ public class IncrImpl implements RedisCommandHandler {
                 MortalValue<String> newMortalValue = new MortalValue<>(newValue);
                 storageManager.put(key, newMortalValue);
             } catch (NumberFormatException e) {
-                response = "-ERR value is not an integer or out of range\r\n";
+                response = RESPEncoder.encodeErrorString("ERR value is not an integer or out of range");
             }
 
         }

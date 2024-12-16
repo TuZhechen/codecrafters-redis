@@ -17,9 +17,8 @@ public class KeysImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 2) {
-            response = "-ERR KEYS requires at least one pattern argument";
-            clientHandler.getWriter().print(response);
-            return null;
+            response = "ERR KEYS requires at least one pattern argument";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;

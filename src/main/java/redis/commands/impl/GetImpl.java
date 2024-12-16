@@ -18,9 +18,8 @@ public class GetImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler,boolean invokeFromExec) {
         String response;
         if (args.length < 2) {
-            response = "-ERR wrong number of arguments for 'GET'\r\n";
-            clientHandler.getWriter().print(response);
-            return null;
+            response = "ERR wrong number of arguments for 'GET'";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;

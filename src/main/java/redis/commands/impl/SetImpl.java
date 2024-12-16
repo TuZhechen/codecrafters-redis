@@ -19,10 +19,8 @@ public class SetImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 3) {
-            response = "-ERR wrong number of arguments for 'SET'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
+            response = "ERR wrong number of arguments for 'SET'";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
@@ -35,10 +33,8 @@ public class SetImpl implements RedisCommandHandler {
                 int lifespan = Integer.parseInt(args[4]);
                 mortalValue.setExpirationTime(System.currentTimeMillis() + lifespan);
             } catch (NumberFormatException e) {
-                response = "-ERR invalid PX value\r\n";
-                clientHandler.getWriter().print(response);
-                clientHandler.getWriter().flush();
-                return null;
+                response = "ERR invalid PX value";
+                return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
             }
         }
 

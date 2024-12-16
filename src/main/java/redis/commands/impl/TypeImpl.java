@@ -17,12 +17,10 @@ public class TypeImpl implements RedisCommandHandler {
 
     @Override
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
-        String response = null, key;
+        String response, key;
         if (args.length != 2) {
-            response = "-ERR wrong number of arguments for 'TYPE'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
+            response = "ERR wrong number of arguments for 'TYPE'";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;

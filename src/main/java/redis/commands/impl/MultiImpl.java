@@ -8,17 +8,9 @@ public class MultiImpl implements RedisCommandHandler {
 
     @Override
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
-        String response;
-        if (args.length > 1) {
-            response = "-ERR wrong number of arguments for 'MULTI'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
-        }
-
         clientHandler.setInTransaction(true);
         clientHandler.getCommandQueue().clear();
-        response = RESPEncoder.encodeSimpleString("OK");
+        String response = RESPEncoder.encodeSimpleString("OK");
         if (!invokeFromExec) {
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();

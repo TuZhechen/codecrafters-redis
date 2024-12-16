@@ -11,6 +11,10 @@ public class RESPDecoder {
         return new SimpleStringImpl().decode(respString);
     }
 
+    public static String decodeErrorString(String respString) {
+        return new ErrorStringImpl().decode(respString);
+    }
+
     public static String decodeBulkString(String respString) {
         return new BulkStringImpl().decode(respString);
     }

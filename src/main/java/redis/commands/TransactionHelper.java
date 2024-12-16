@@ -14,4 +14,14 @@ public class TransactionHelper {
         }
         return false;
     }
+
+    public static String errorResponse(ClientHandler handler, String message, boolean exec) {
+        String response;
+        response = RESPEncoder.encodeErrorString(message);
+        if (!exec) {
+            handler.getWriter().print(response);
+            handler.getWriter().flush();
+        }
+        return response;
+    }
 }

@@ -17,7 +17,7 @@ public class ConfigImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 3) {
-            response = "-ERR wrong number of arguments for 'CONFIG'\r\n";
+            response = RESPEncoder.encodeErrorString("ERR wrong number of arguments for 'CONFIG'");
             clientHandler.getWriter().print(response);
             clientHandler.getWriter().flush();
             return null;

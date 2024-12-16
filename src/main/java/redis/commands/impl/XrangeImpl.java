@@ -24,8 +24,7 @@ public class XrangeImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length != 4) {
-            illegalNumOfArg(clientHandler);
-            return null;
+            return illegalNumOfArg(clientHandler, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
@@ -33,8 +32,7 @@ public class XrangeImpl implements RedisCommandHandler {
         String streamKey = args[1], startId = args[2], endId = args[3];
         MortalValue<RedisStream> v = storageManager.get(streamKey, RedisStream.class);
         if (v == null) {
-            streamNotExist(clientHandler,streamKey);
-            return null;
+            return streamNotExist(clientHandler, invokeFromExec);
         }
         RedisStream stream = v.getValue();
         List<List<Object>> streamEntries = stream.getEntries().stream()
@@ -56,17 +54,13 @@ public class XrangeImpl implements RedisCommandHandler {
         return response;
     }
 
-    private void illegalNumOfArg(ClientHandler clientHandler) {
-        String response;
-        response = "-ERR wrong number of arguments for 'XRANGE'\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String illegalNumOfArg(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR wrong number of arguments for 'XRANGE'";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 
-    private static void streamNotExist(ClientHandler clientHandler, String key) {
-        String response;
-        response = "-ERR stream " + key + " does not exist\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String streamNotExist(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR stream does not exist";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 }

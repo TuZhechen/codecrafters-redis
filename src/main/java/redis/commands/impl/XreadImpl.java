@@ -25,6 +25,7 @@ public class XreadImpl implements RedisCommandHandler {
         int argLength = args.length, offset = 0;
         boolean isBlockRead = false;
         long blockTime = 0;
+        String errorResponse;
         if (args[1].equalsIgnoreCase("block")) {
             try {
                 blockTime = Long.parseLong(args[2]);
@@ -37,11 +38,9 @@ public class XreadImpl implements RedisCommandHandler {
             isBlockRead = blockTime >= 0;
         }
         if (argLength < 4 && (argLength - offset - 2) % 2 != 0) {
-            illegalNumOfArg(clientHandler);
-            return null;
+            return illegalNumOfArg(clientHandler, invokeFromExec);
         } else if (!args[offset + 1].equalsIgnoreCase("streams")) {
-            wrongReadHeader(clientHandler);
-            return null;
+            return wrongReadHeader(clientHandler, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
@@ -70,8 +69,7 @@ public class XreadImpl implements RedisCommandHandler {
                 if (entriesFound) {
                     return successResponse(clientHandler, result, invokeFromExec);
                 } else {
-                    noEntryRetrieved(clientHandler);
-                    return null;
+                    return noEntryRetrieved(clientHandler, invokeFromExec);
                 }
             }
 
@@ -79,8 +77,7 @@ public class XreadImpl implements RedisCommandHandler {
                 if (blockTime == 0) continue;
                 boolean isTimeOut = System.currentTimeMillis() - startTime > blockTime;
                 if (isTimeOut) {
-                    noEntryRetrieved(clientHandler);
-                    return null;
+                    return noEntryRetrieved(clientHandler, invokeFromExec);
                 }
             }
         }
@@ -115,32 +112,29 @@ public class XreadImpl implements RedisCommandHandler {
         return entriesFound;
     }
 
-    private void illegalNumOfArg(ClientHandler clientHandler) {
-        String response;
-        response = "-ERR wrong number of arguments for 'XREAD'\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String illegalNumOfArg(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR wrong number of arguments for 'XREAD'";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 
-    private void wrongReadHeader(ClientHandler clientHandler) {
-        String response;
-        response = "-ERR 2nd argument should be streams for 'XREAD'\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String wrongReadHeader(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR 2nd argument should be 'streams' for 'XREAD'";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 
-    private static void streamNotExist(ClientHandler clientHandler, String key) {
-        String response;
-        response = "-ERR stream " + key + " does not exist\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String streamNotExist(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR stream does not exist";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 
-    private void noEntryRetrieved(ClientHandler clientHandler) {
+    private String noEntryRetrieved(ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         response = RESPEncoder.encodeBulkString("");
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+        if (!invokeFromExec) {
+            clientHandler.getWriter().print(response);
+            clientHandler.getWriter().flush();
+        }
+        return response;
     }
 
     private RedisStream.StreamEntry findTargetEntry(RedisStream stream, String id) {

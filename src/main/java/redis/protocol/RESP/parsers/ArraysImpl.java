@@ -8,7 +8,11 @@ public class ArraysImpl {
         sb.append("*").append(elements.length).append("\r\n");  // Format: *<num-elements>\r\n
         for (Object element : elements) {
             if (element instanceof String) {
-                sb.append(new BulkStringImpl().encode((String) element));  // Each element as a Bulk String
+                if (((String) element).startsWith("ERR")) {
+                    sb.append(new ErrorStringImpl().encode((String)element));
+                } else {
+                    sb.append(new BulkStringImpl().encode((String) element));
+                }
             } else if (element instanceof Integer) {
                 sb.append(new IntegerImpl().encode((Integer) element));
             } else if (element instanceof Object[]) {

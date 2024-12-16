@@ -22,23 +22,19 @@ public class XaddImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length < 5 || (args.length - 3) % 2 != 0) {
-            response = "-ERR wrong number of arguments for 'XADD'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
+            response = "ERR wrong number of arguments for 'XADD'";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
 
         String key = args[1], id = args[2];
         if (!isValidEntryId(id)) {
-            invalidIdResponse(clientHandler);
-            return null;
+            return invalidIdResponse(clientHandler, invokeFromExec);
         }
 
         if (isExplictStreamId(id) && compareStreamIds(id, "0-0") <= 0) {
-            leqZeroIdResponse(clientHandler);
-            return null;
+            return leqZeroIdResponse(clientHandler, invokeFromExec);
         }
 
         MortalValue<RedisStream> streamValue = storageManager.get(key, RedisStream.class);
@@ -60,13 +56,11 @@ public class XaddImpl implements RedisCommandHandler {
             long lastIdSequence = Long.parseLong(lastId.split("-")[1]);
             if (isExplictStreamId(id)) {
                 if (compareStreamIds(id, lastId) <= 0) {
-                    invalidOrderResponse(clientHandler);
-                    return null;
+                    return invalidOrderResponse(clientHandler, invokeFromExec);
                 }
             } else {
                 if (lastTimeStamp > currTimeStamp) {
-                    invalidOrderResponse(clientHandler);
-                    return null;
+                    return invalidOrderResponse(clientHandler, invokeFromExec);
                 }
                 long currIdSequence =  currTimeStamp > lastTimeStamp ? 0 : lastIdSequence + 1;
                 id = currTimeStamp + "-" + currIdSequence;
@@ -90,25 +84,19 @@ public class XaddImpl implements RedisCommandHandler {
         return response;
     }
 
-    private void invalidOrderResponse(ClientHandler clientHandler) {
-        String response;
-        response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String invalidOrderResponse(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR The ID specified in XADD is equal or smaller than the target stream top item";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 
-    private void leqZeroIdResponse(ClientHandler clientHandler) {
-        String response;
-        response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String leqZeroIdResponse(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR The ID specified in XADD must be greater than 0-0";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 
-    private void invalidIdResponse(ClientHandler clientHandler) {
-        String response;
-        response = "-ERR illegal entry ID\r\n";
-        clientHandler.getWriter().print(response);
-        clientHandler.getWriter().flush();
+    private String invalidIdResponse(ClientHandler clientHandler, boolean invokeFromExec) {
+        String response = "ERR illegal entry ID";
+        return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
     }
 
     private boolean isValidEntryId(String id) {

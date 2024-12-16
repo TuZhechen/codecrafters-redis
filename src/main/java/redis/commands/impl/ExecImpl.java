@@ -2,6 +2,7 @@ package redis.commands.impl;
 
 import redis.commands.RedisCommandFactory;
 import redis.commands.RedisCommandHandler;
+import redis.commands.TransactionHelper;
 import redis.core.ServerConfig;
 import redis.core.StorageManager;
 import redis.protocol.RESP.RESPDecoder;
@@ -26,17 +27,13 @@ public class ExecImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length > 1) {
-            response = "-ERR wrong number of arguments for 'EXEC'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
+            response = "ERR wrong number of arguments for 'EXEC'";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (!clientHandler.isInTransaction()) {
-            response = "-ERR EXEC without MULTI\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
+            response = "ERR EXEC without MULTI";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         Queue<String []> commandQueue = clientHandler.getCommandQueue();
@@ -64,6 +61,9 @@ public class ExecImpl implements RedisCommandHandler {
                             break;
                         case ':':
                             responses.add(RESPDecoder.decodeInteger(res));
+                            break;
+                        case '-':
+                            responses.add(RESPDecoder.decodeErrorString(res));
                             break;
                         default:
                             break;

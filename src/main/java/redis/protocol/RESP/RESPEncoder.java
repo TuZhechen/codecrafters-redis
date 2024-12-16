@@ -7,6 +7,10 @@ public class RESPEncoder {
         return new SimpleStringImpl().encode(value);
     }
 
+    public static String encodeErrorString(String value) {
+        return new ErrorStringImpl().encode(value);
+    }
+
     public static String encodeInteger(int value) {
         return new IntegerImpl().encode(value);
     }

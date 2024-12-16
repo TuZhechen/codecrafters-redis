@@ -14,7 +14,7 @@ public class EchoImpl implements RedisCommandHandler {
         if (args.length > 1) {
             response = RESPEncoder.encodeBulkString(args[1]);
         } else {
-            response = "-ERR wrong number of arguments for 'ECHO'\n";
+            response = RESPEncoder.encodeErrorString("ERR wrong number of arguments for 'ECHO'");
         }
         if (!invokeFromExec) {
             clientHandler.getWriter().print(response);

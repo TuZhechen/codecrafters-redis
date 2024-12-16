@@ -2,6 +2,7 @@ package redis.commands.impl;
 
 import redis.commands.RedisCommandHandler;
 import redis.commands.TransactionHelper;
+import redis.protocol.RESP.RESPEncoder;
 import redis.protocol.RESP.parsers.SimpleStringImpl;
 import redis.server.ClientHandler;
 
@@ -15,9 +16,8 @@ public class ReplConfImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         if (args[1].equalsIgnoreCase("ACK")) {
             if (args.length != 3) {
-                String error = "-ERR wrong number of arguments for 'ACK'\r\n";
-                clientHandler.getWriter().print(error);
-                clientHandler.getWriter().flush();
+                String error = "ERR wrong number of arguments for 'ACK'";
+                return TransactionHelper.errorResponse(clientHandler, error, invokeFromExec);
             }
 
             if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;

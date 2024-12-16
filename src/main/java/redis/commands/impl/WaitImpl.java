@@ -24,10 +24,8 @@ public class WaitImpl implements RedisCommandHandler {
     public String invoke(String[] args, ClientHandler clientHandler, boolean invokeFromExec) {
         String response;
         if (args.length != 3) {
-            response = "-ERR wrong number of arguments for 'WAIT'\r\n";
-            clientHandler.getWriter().print(response);
-            clientHandler.getWriter().flush();
-            return null;
+            response = "ERR wrong number of arguments for 'WAIT'";
+            return TransactionHelper.errorResponse(clientHandler, response, invokeFromExec);
         }
 
         if (TransactionHelper.isHandlingTransaction(clientHandler, args)) return null;
@@ -77,7 +75,7 @@ public class WaitImpl implements RedisCommandHandler {
                     ackedReplicas == 0 ? replicas.size() : ackedReplicas
             );
         } catch (NumberFormatException e) {
-            response = "-ERR invalid arguments for 'WAIT'\r\n";
+            response = RESPEncoder.encodeErrorString("ERR invalid arguments for 'WAIT'");
         }
 
         if (!invokeFromExec) {
