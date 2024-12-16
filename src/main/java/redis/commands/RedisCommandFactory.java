@@ -49,6 +49,8 @@ public class RedisCommandFactory {
                 return new MultiImpl();
             case "EXEC":
                 return new ExecImpl(storageManager, serverConfig);
+            case "DISCARD":
+                return new DiscardImpl();
             default:
                 return null;
         }
